@@ -23,7 +23,8 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 - Auth pages in `src/app/(auth)/` (shared logo card layout): `/signup`, `/login`, `/verify-email`, `/forgot-password`, `/reset-password`; plus `/auth/confirm` (route handler) and `/auth/auth-error`
 - Signup collects email, password, DOB, first/last name, phone, notification preference (email/sms/both, required, no opt-out). Server action validates, then provisions via service role: `students` row + `applications` row for the active cycle + 7 `step_progress` rows. Signup fields also stashed in auth user metadata
-- `/auth/confirm` is the single landing point for all Supabase email links — verifies `token_hash` for signup confirmation, magic link, recovery, and email_change; recovery → `/reset-password`, email_change syncs `students.email`
+- **Email link flow (default templates):** Supabase's built-in email service does NOT allow editing template bodies without custom SMTP (Phase 9), so we use the DEFAULT templates. Their `{{ .ConfirmationURL }}` hits Supabase's `/auth/v1/verify`, which confirms the token and redirects to `?code=` (PKCE). All auth calls pass `emailRedirectTo`/`redirectTo` → `/auth/callback`, which runs `exchangeCodeForSession`, syncs `students.email` on email-change, and redirects (recovery → `/reset-password` via `?next=`). Origin is derived per-request in `src/utils/origin.ts` (no hardcoded URL). Caveat: PKCE code exchange needs the verifier cookie, so links work when opened in the SAME browser that started the flow; cross-device requires the token_hash path below.
+- `/auth/confirm` (token_hash flow) is kept ready for **Phase 9**: once custom SMTP + branded templates exist, point templates at `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=...` for cross-device links and retire the `/auth/callback` dependency.
 - Login: email/password + magic-link tab (`signInWithOtp`, `shouldCreateUser:false`). Forgot/reset password flow. Unverified login bounces to `/verify-email` with a resend button
 - Duplicate email at signup: checks `students` by email with the service role (Supabase obfuscates this on the public API), shows the PRD reset prompt, and sends the reset to the original address. The `data.user.identities.length===0` placeholder case is also caught
 - Profile page (`/profile`, gated): view/edit first/last name, preferred name, phone, DOB, notification preference, and email (email change goes through a confirmation link); log out. Self-heals missing student rows from auth metadata on load
@@ -40,9 +41,15 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Deployment URL:** production is `https://launchpad-application.vercel.app` (Vercel). Use this — not a placeholder — for Supabase Site URL, redirect URLs, and any absolute links.
 
-**Action items for the user (not yet done):**
+**Done — Supabase dashboard config (confirmed by user via screenshots):**
 
-- **Supabase dashboard config (exact clicks in the Phase 2 chat):** set **Site URL to `https://launchpad-application.vercel.app`** (not localhost — email links are prefixed with it), add redirect URLs `https://launchpad-application.vercel.app/**` and `http://localhost:3000/**`, confirm "Confirm email" is on, and update the Confirm signup / Magic Link / Reset Password / Change Email templates to the `token_hash` → `/auth/confirm` format
+- Site URL = `https://launchpad-application.vercel.app`; Redirect URLs include `https://launchpad-application.vercel.app/**`
+- Email templates are the Supabase DEFAULTS (no custom SMTP) — **no template edits needed** for Phase 2; the app's `/auth/callback` handles the default links. Custom branded templates + SMTP are Phase 9.
+
+**Remaining for the user:**
+
+- Confirm **"Confirm email" is ON** (Authentication → Providers → Email) so the verification gate is enforced
+- Heads-up: the built-in email service is rate-limited (~a few messages/hour) — fine for QA, replaced by Resend in Phase 9
 - **Local dev only (optional):** if running `npm run dev` on a laptop, create `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Supabase → Settings → API), and `SUPABASE_SECRET_KEY`. Not needed for the deployed Vercel site
 
 **Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Migration 0002 (grants — this project doesn't auto-grant table privileges to API roles) pending user paste into the SQL editor.

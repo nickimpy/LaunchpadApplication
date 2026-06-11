@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { getOrigin } from "@/utils/origin";
 import { emailError, field, passwordError } from "@/utils/validation";
 
 export type LoginState = {
@@ -54,7 +55,10 @@ export async function sendMagicLink(
   // new accounts go through /signup so we collect name, DOB, phone, prefs.
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: false },
+    options: {
+      shouldCreateUser: false,
+      emailRedirectTo: `${await getOrigin()}/auth/callback`,
+    },
   });
 
   if (error)

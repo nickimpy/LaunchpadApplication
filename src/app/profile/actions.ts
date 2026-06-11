@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { getOrigin } from "@/utils/origin";
 import {
   dobError,
   emailError,
@@ -73,9 +74,10 @@ export async function updateProfile(
   // takes effect once it's clicked. The students.email row is synced then.
   let emailPending: string | undefined;
   if (values.email !== (user.email ?? "").toLowerCase()) {
-    const { error: emailErr } = await supabase.auth.updateUser({
-      email: values.email,
-    });
+    const { error: emailErr } = await supabase.auth.updateUser(
+      { email: values.email },
+      { emailRedirectTo: `${await getOrigin()}/auth/callback?next=/profile` },
+    );
     if (emailErr)
       return {
         errors: { email: "We couldn't start the email change. Try again." },

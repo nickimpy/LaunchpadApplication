@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+import { getOrigin } from "@/utils/origin";
 import { ensureStudentRecords } from "@/utils/provisioning";
 import {
   dobError,
@@ -69,6 +70,8 @@ export async function signup(
     email: values.email,
     password: values.password,
     options: {
+      // default confirmation email lands here after Supabase verifies the token
+      emailRedirectTo: `${await getOrigin()}/auth/callback`,
       // kept in auth metadata so a half-finished signup can self-heal on
       // first login (see ensureStudentRecords call in /profile)
       data: {

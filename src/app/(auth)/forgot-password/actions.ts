@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
+import { getOrigin } from "@/utils/origin";
 import { emailError, field } from "@/utils/validation";
 
 export type ResetRequestState = {
@@ -22,7 +23,9 @@ export async function sendPasswordReset(
   if (invalid) return { error: invalid, values: { email } };
 
   const supabase = createClient(await cookies());
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${await getOrigin()}/auth/callback?next=/reset-password`,
+  });
   if (error)
     return {
       error: "We couldn't send the reset email. Please try again in a minute.",
