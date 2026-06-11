@@ -21,7 +21,7 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Next — Phase 2 (Student Accounts & Login):** signup, email verification, password + magic link, duplicate-email reset prompt, notification preference, profile page. Will need the Supabase secret/service-role key as a server-only env var.
 
-**Pending user action:** apply the two files in `supabase/migrations/` (in order) via the Supabase SQL editor, or provide the session-pooler DB connection string so migrations run from the CLI.
+**Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Migration 0002 (grants — this project doesn't auto-grant table privileges to API roles) pending user paste into the SQL editor.
 
 ## Stack (decided, do not revisit)
 
