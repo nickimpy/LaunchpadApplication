@@ -13,7 +13,7 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 **Done — Phase 1 (Foundation):**
 
 - Next.js 16 app scaffolded (App Router, TypeScript, Tailwind 4, `src/` dir); builds clean
-- Supabase client wiring: `src/utils/supabase/{client,server,middleware}.ts` + `src/middleware.ts` session refresh; env vars in `.env.local` (gitignored, see `.env.example`)
+- Supabase client wiring: `src/utils/supabase/{client,server,middleware}.ts` + `src/proxy.ts` session refresh; env vars in `.env.local` (gitignored, see `.env.example`)
 - Complete schema in `supabase/migrations/`: 19 tables (students, applications, demographics isolated for funder-only use, guardians, schools, step_progress engine, parent_form_submissions, essay prompts/responses, interviews + interview_scores rubric, decisions with `released_at` gating, admin_users, audit_log, notification_log, documents, admin_notes, cycles, cycle_settings), RLS on every table, private `documents`/`signatures` storage buckets
 - Seed migration: 82 schools (31 Track A partners), active `2026-2027` cycle, placeholder cycle settings, beta essay prompt
 - Migrations validated against a local Postgres 16 with stubbed auth/storage schemas; seed is idempotent
@@ -28,16 +28,24 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 - Login: email/password + magic-link tab (`signInWithOtp`, `shouldCreateUser:false`). Forgot/reset password flow. Unverified login bounces to `/verify-email` with a resend button
 - Duplicate email at signup: checks `students` by email with the service role (Supabase obfuscates this on the public API), shows the PRD reset prompt, and sends the reset to the original address. The `data.user.identities.length===0` placeholder case is also caught
 - Profile page (`/profile`, gated): view/edit first/last name, preferred name, phone, DOB, notification preference, and email (email change goes through a confirmation link); log out. Self-heals missing student rows from auth metadata on load
-- Middleware now gates routes: unauthenticated → `/login` for `/profile`; authenticated → `/profile` for `/login`/`/signup`
+- **Route gating lives in layouts/pages, NOT the proxy** (Next.js 16 guidance): `src/app/(auth)/layout.tsx` redirects logged-in users to `/profile`; `/profile/page.tsx` redirects logged-out users to `/login`. `src/proxy.ts` (Next.js 16 renamed `middleware.ts` → `proxy.ts`, export `proxy` — the old name 404s the whole site on Vercel) ONLY refreshes the session cookie. Phase 3+: gate new portal routes in their own server layout the same way
+- Email rate-limit errors (`over_email_send_rate_limit`) are surfaced with a clear message via `src/utils/auth-errors.ts` on signup, magic link, reset, and resend
 - Shared form primitives in `src/components/forms.tsx`; validation in `src/utils/validation.ts`; provisioning in `src/utils/provisioning.ts`; service-role client in `src/utils/supabase/admin.ts`. WCAG: labels on every field, `aria-describedby`/`aria-invalid` errors, keyboard navigable, mobile-first, brand tokens
 - `server-only` added as a dependency (guards the admin/provisioning modules)
 - Lint + production build pass clean
 
-**Next — Phase 3 (Portal Shell & Step Engine):** two-panel layout, numbered sidebar with all 7 steps + status indicators, greyed-out dependent steps, deadlines, progress updates. Add new portal route prefixes to `PROTECTED_PREFIXES` in `src/utils/supabase/middleware.ts`.
+**Phase 2 QA status (live on Vercel):**
+
+- ✅ End-to-end confirmed: signup → verification email → click link (same browser) → verified → `/profile` loads with the student's data
+- ⏳ NOT yet QA'd: magic-link login, forgot/reset password, duplicate-email reset prompt, profile editing — blocked by the built-in email sender's rate limit (~2 emails/hour project-wide; confirmed `429 email rate limit exceeded` in Auth logs). Quota refills hourly; test opportunistically. **Must be verified before Phase 9 completes / beta.** If the limit blocks work, Resend custom SMTP can be pulled forward from Phase 9 (also unlocks editable templates + cross-device links)
+- Email links are SAME-BROWSER only until Phase 9 (PKCE verifier cookie) — open the email in the browser that started the flow
+
+**Next — Phase 3 (Portal Shell & Step Engine):** two-panel layout, numbered sidebar with all 7 steps + status indicators, greyed-out dependent steps, deadlines, progress updates. Gate portal routes with a server layout auth check (like `(auth)/layout.tsx`), NOT the proxy.
 
 **Done — Phase 2 config:**
 
 - `SUPABASE_SECRET_KEY` added to Vercel env vars and deployed (confirmed by user)
+- **Vercel Framework Preset fixed: was "Other" (caused sitewide platform 404s), now "Next.js"** (project was imported before `package.json` existed, so detection failed). If sitewide 404s ever recur, check this first
 
 **Deployment URL:** production is `https://launchpad-application.vercel.app` (Vercel). Use this — not a placeholder — for Supabase Site URL, redirect URLs, and any absolute links.
 
@@ -46,10 +54,11 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 - Site URL = `https://launchpad-application.vercel.app`; Redirect URLs include `https://launchpad-application.vercel.app/**`
 - Email templates are the Supabase DEFAULTS (no custom SMTP) — **no template edits needed** for Phase 2; the app's `/auth/callback` handles the default links. Custom branded templates + SMTP are Phase 9.
 
+- "Confirm email" is ON (verified working: signup required email confirmation before login)
+
 **Remaining for the user:**
 
-- Confirm **"Confirm email" is ON** (Authentication → Providers → Email) so the verification gate is enforced
-- Heads-up: the built-in email service is rate-limited (~a few messages/hour) — fine for QA, replaced by Resend in Phase 9
+- Finish the deferred Phase 2 QA (magic link, password reset, duplicate-email prompt, profile edit) as the hourly email quota allows
 - **Local dev only (optional):** if running `npm run dev` on a laptop, create `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Supabase → Settings → API), and `SUPABASE_SECRET_KEY`. Not needed for the deployed Vercel site
 
 **Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Migration 0002 (grants — this project doesn't auto-grant table privileges to API roles) pending user paste into the SQL editor.
