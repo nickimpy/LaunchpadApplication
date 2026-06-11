@@ -19,7 +19,26 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 - Migrations validated against a local Postgres 16 with stubbed auth/storage schemas; seed is idempotent
 - Decision made (PRD open item): step dependency map = Step 1 unlocks 2–6 (parallel); Step 7 admin-only
 
-**Next — Phase 2 (Student Accounts & Login):** signup, email verification, password + magic link, duplicate-email reset prompt, notification preference, profile page. Will need the Supabase secret/service-role key as a server-only env var.
+**Done — Phase 2 (Student Accounts & Login):**
+
+- Auth pages in `src/app/(auth)/` (shared logo card layout): `/signup`, `/login`, `/verify-email`, `/forgot-password`, `/reset-password`; plus `/auth/confirm` (route handler) and `/auth/auth-error`
+- Signup collects email, password, DOB, first/last name, phone, notification preference (email/sms/both, required, no opt-out). Server action validates, then provisions via service role: `students` row + `applications` row for the active cycle + 7 `step_progress` rows. Signup fields also stashed in auth user metadata
+- `/auth/confirm` is the single landing point for all Supabase email links — verifies `token_hash` for signup confirmation, magic link, recovery, and email_change; recovery → `/reset-password`, email_change syncs `students.email`
+- Login: email/password + magic-link tab (`signInWithOtp`, `shouldCreateUser:false`). Forgot/reset password flow. Unverified login bounces to `/verify-email` with a resend button
+- Duplicate email at signup: checks `students` by email with the service role (Supabase obfuscates this on the public API), shows the PRD reset prompt, and sends the reset to the original address. The `data.user.identities.length===0` placeholder case is also caught
+- Profile page (`/profile`, gated): view/edit first/last name, preferred name, phone, DOB, notification preference, and email (email change goes through a confirmation link); log out. Self-heals missing student rows from auth metadata on load
+- Middleware now gates routes: unauthenticated → `/login` for `/profile`; authenticated → `/profile` for `/login`/`/signup`
+- Shared form primitives in `src/components/forms.tsx`; validation in `src/utils/validation.ts`; provisioning in `src/utils/provisioning.ts`; service-role client in `src/utils/supabase/admin.ts`. WCAG: labels on every field, `aria-describedby`/`aria-invalid` errors, keyboard navigable, mobile-first, brand tokens
+- `server-only` added as a dependency (guards the admin/provisioning modules)
+- Lint + production build pass clean
+
+**Next — Phase 3 (Portal Shell & Step Engine):** two-panel layout, numbered sidebar with all 7 steps + status indicators, greyed-out dependent steps, deadlines, progress updates. Add new portal route prefixes to `PROTECTED_PREFIXES` in `src/utils/supabase/middleware.ts`.
+
+**Action items for the user (not yet done):**
+
+- **Local env:** this is a fresh container — `.env.local` was recreated with `SUPABASE_SECRET_KEY` filled in, but you must re-paste your `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` values (from Supabase → Settings → API)
+- **Vercel:** add `SUPABASE_SECRET_KEY` to the project's environment variables and redeploy
+- **Supabase dashboard config (exact clicks in the Phase 2 chat):** set Site URL + Redirect URLs, confirm "Confirm email" is on, and update the Confirm signup / Magic Link / Reset Password / Change Email templates to the `{{ .ConfirmationURL }}` → `token_hash` format that `/auth/confirm` expects
 
 **Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Migration 0002 (grants — this project doesn't auto-grant table privileges to API roles) pending user paste into the SQL editor.
 
