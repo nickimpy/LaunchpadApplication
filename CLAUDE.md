@@ -34,11 +34,14 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Next — Phase 3 (Portal Shell & Step Engine):** two-panel layout, numbered sidebar with all 7 steps + status indicators, greyed-out dependent steps, deadlines, progress updates. Add new portal route prefixes to `PROTECTED_PREFIXES` in `src/utils/supabase/middleware.ts`.
 
+**Done — Phase 2 config:**
+
+- `SUPABASE_SECRET_KEY` added to Vercel env vars and deployed (confirmed by user)
+
 **Action items for the user (not yet done):**
 
-- **Local env:** this is a fresh container — `.env.local` was recreated with `SUPABASE_SECRET_KEY` filled in, but you must re-paste your `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` values (from Supabase → Settings → API)
-- **Vercel:** add `SUPABASE_SECRET_KEY` to the project's environment variables and redeploy
-- **Supabase dashboard config (exact clicks in the Phase 2 chat):** set Site URL + Redirect URLs, confirm "Confirm email" is on, and update the Confirm signup / Magic Link / Reset Password / Change Email templates to the `{{ .ConfirmationURL }}` → `token_hash` format that `/auth/confirm` expects
+- **Supabase dashboard config (exact clicks in the Phase 2 chat):** set **Site URL to the Vercel production URL** (not localhost — email links are prefixed with it), add both the Vercel and `http://localhost:3000/**` redirect URLs, confirm "Confirm email" is on, and update the Confirm signup / Magic Link / Reset Password / Change Email templates to the `token_hash` → `/auth/confirm` format
+- **Local dev only (optional):** if running `npm run dev` on a laptop, create `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Supabase → Settings → API), and `SUPABASE_SECRET_KEY`. Not needed for the deployed Vercel site
 
 **Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Migration 0002 (grants — this project doesn't auto-grant table privileges to API roles) pending user paste into the SQL editor.
 
