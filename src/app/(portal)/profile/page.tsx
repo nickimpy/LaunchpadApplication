@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { ensureStudentRecords } from "@/utils/provisioning";
 import type { NotificationPreference } from "@/utils/validation";
 import { ProfileForm, type ProfileValues } from "./profile-form";
-import { logout } from "./actions";
 
 export const metadata: Metadata = { title: "Your profile — Launchpad" };
 
@@ -59,36 +57,15 @@ export default async function ProfilePage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-grey-tint4">
-      <header className="flex items-center justify-between border-b border-grey-tint2 bg-white px-6 py-3">
-        <Image
-          src="/brand/launchpad-logo-main-color.svg"
-          alt="Launchpad Philly"
-          width={160}
-          height={48}
-          priority
-        />
-        <form action={logout}>
-          <button
-            type="submit"
-            className="rounded-md border border-grey-tint1 px-3 py-3 text-base font-bold
-              text-grey hover:bg-grey-tint4 focus:outline-none focus-visible:ring-2
-              focus-visible:ring-teal-dark"
-          >
-            Log out
-          </button>
-        </form>
-      </header>
-      <main className="mx-auto w-full max-w-2xl px-6 py-12">
-        <h1 className="mb-3 text-2xl font-bold">Your profile</h1>
-        <p className="mb-9">
-          Keep your contact details up to date. We use your preferred name in
-          all communications.
-        </p>
-        <div className="rounded-lg bg-white p-6 shadow-sm">
-          <ProfileForm initial={initial} />
-        </div>
-      </main>
-    </div>
+    <>
+      <h1 className="mb-3 text-2xl font-bold">Your profile</h1>
+      <p className="mb-9">
+        Keep your contact details up to date. We use your preferred name in all
+        communications.
+      </p>
+      <div className="rounded-lg bg-white p-6 shadow-sm">
+        <ProfileForm initial={initial} />
+      </div>
+    </>
   );
 }

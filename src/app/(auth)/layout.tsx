@@ -13,7 +13,7 @@ export default async function AuthLayout({
   } = await supabase.auth.getUser();
 
   // Logged-in students don't need the auth pages — send them to the portal.
-  if (user) redirect("/profile");
+  if (user) redirect("/portal");
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-grey-tint4 px-6 py-12">

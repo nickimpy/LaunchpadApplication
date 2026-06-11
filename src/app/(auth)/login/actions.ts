@@ -34,7 +34,7 @@ export async function login(
     };
   }
 
-  redirect("/profile");
+  redirect("/portal");
 }
 
 export type MagicLinkState = {

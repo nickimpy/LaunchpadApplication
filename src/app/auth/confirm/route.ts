@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   // recovery links should land on the set-new-password page
-  const next = searchParams.get("next") ?? "/profile";
+  const next = searchParams.get("next") ?? "/portal";
 
   if (token_hash && type) {
     const supabase = createClient(await cookies());

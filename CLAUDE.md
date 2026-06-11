@@ -40,7 +40,20 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 - ⏳ NOT yet QA'd: magic-link login, forgot/reset password, duplicate-email reset prompt, profile editing — blocked by the built-in email sender's rate limit (~2 emails/hour project-wide; confirmed `429 email rate limit exceeded` in Auth logs). Quota refills hourly; test opportunistically. **Must be verified before Phase 9 completes / beta.** If the limit blocks work, Resend custom SMTP can be pulled forward from Phase 9 (also unlocks editable templates + cross-device links)
 - Email links are SAME-BROWSER only until Phase 9 (PKCE verifier cookie) — open the email in the browser that started the flow
 
-**Next — Phase 3 (Portal Shell & Step Engine):** two-panel layout, numbered sidebar with all 7 steps + status indicators, greyed-out dependent steps, deadlines, progress updates. Gate portal routes with a server layout auth check (like `(auth)/layout.tsx`), NOT the proxy.
+**Done — Phase 3 (Portal Shell & Step Engine):**
+
+- Portal shell at `/portal` in `src/app/(portal)/`: **server-layout auth gate** (`(portal)/layout.tsx`, same pattern as `(auth)/layout.tsx`; `src/proxy.ts` still ONLY refreshes cookies), branded header (logo → `/portal`, Profile link, Log out), skip-to-content link
+- Step nav (`src/components/portal/step-nav.tsx`, client component for `usePathname`/`aria-current`): desktop = left sidebar with numbered status circles, status label, deadline per step, and an "X of 7 steps complete" progress bar; mobile = horizontal thumb strip of 48px numbered circles. WCAG: status conveyed as text not color alone, `aria-current="step"`, full `aria-label` per step. Locked steps stay visible/numbered but greyed with a lock icon — they remain links to a "complete Step 1 to unlock" notice page, not dead elements. Step 7 shows "Staff only"
+- Step engine: `src/utils/steps.ts` (step metadata + status labels + **dependency map: Step 1 `complete` unlocks 2–6; Step 7 visible but never student-actionable** + student status caps mirroring RLS — steps 1/3 up to `complete`, 5/6 cap at `pending_verification`) and `src/utils/step-engine.ts` (server-only: `getPortalData()`, React-`cache`d per request — student with self-heal, active-cycle application, all 7 `step_progress` rows, deadlines, contact email; plus `setStepStatus()` for the Phase 4–6 forms — start/submit/re-open-after-submit, validated in code AND enforced by RLS)
+- `/portal` overview (greeting with preferred name, progress count, continue-where-you-left-off CTA) and `/portal/steps/[1–7]` placeholder pages (status badge, deadline, who-completes-it copy, locked/staff-only/parent-form explainer panels). **No real forms yet** — Phases 4–6 replace the placeholder panels
+- Deadlines + contact email read from `cycle_settings` (admin-editable, never hardcoded); a missing deadline renders "No deadline set yet". Migration **0003** seeds placeholder `step_deadlines` (only if still `{}`, so re-running never clobbers admin edits)
+- `/profile` moved into the `(portal)` group (URL unchanged) — inherits the shell, dropped its duplicate header/auth check
+- Post-login destination is now `/portal` everywhere (`(auth)/layout.tsx`, login + reset-password actions, `/auth/callback` + `/auth/confirm` default `next`)
+- Migrations 0000–0003 validated end-to-end on local Postgres 16 (stubbed auth/storage), incl. 0003 idempotent re-run; lint + production build pass clean
+
+**Phase 3 QA (user, on phone, after pasting migration 0003):** log in → `/portal` shows the branded step strip/sidebar with all 7 numbered steps: Step 1 actionable ("Not started"), Steps 2–6 greyed with a lock + "Locked until Step 1 is complete", Step 7 "Staff only"; deadlines visible per step. Works without 0003 too, just shows "No deadline set yet".
+
+**Next — Phase 4 (Step 1: Student Information form):** the full Step 1 form (personal/academic/demographic/guardian fields, school dropdown + Other, all six conditional rules, college-compatibility warning + review flag, mid-form save, edit-after-submit), parent link token surfaced on screen on completion (email sending is Phase 9). Replace the placeholder panel in `/portal/steps/1`; drive status via `setStepStatus` in `src/utils/step-engine.ts` (it already handles submit/re-open and unlocking 2–6).
 
 **Done — Phase 2 config:**
 
@@ -58,10 +71,12 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Remaining for the user:**
 
+- Paste migrations **0002** (grants) and **0003** (step deadlines) into the Supabase SQL editor
+- Run the Phase 3 phone QA (see "Phase 3 QA" above)
 - Finish the deferred Phase 2 QA (magic link, password reset, duplicate-email prompt, profile edit) as the hourly email quota allows
 - **Local dev only (optional):** if running `npm run dev` on a laptop, create `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Supabase → Settings → API), and `SUPABASE_SECRET_KEY`. Not needed for the deployed Vercel site
 
-**Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Migration 0002 (grants — this project doesn't auto-grant table privileges to API roles) pending user paste into the SQL editor.
+**Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Pending user paste into the SQL editor: **0002** (grants — this project doesn't auto-grant table privileges to API roles) and **0003** (placeholder step deadlines; idempotent, safe to re-run).
 
 ## Stack (decided, do not revisit)
 

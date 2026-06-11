@@ -34,5 +34,5 @@ export async function updatePassword(
   if (error)
     return { error: "We couldn't update your password. Please try again." };
 
-  redirect("/profile");
+  redirect("/portal");
 }
