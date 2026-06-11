@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
+import { getOrigin } from "@/utils/origin";
 import { emailError, field } from "@/utils/validation";
 
 export type ResendState = { error?: string; success?: string };
@@ -15,7 +16,11 @@ export async function resendVerification(
   if (invalid) return { error: invalid };
 
   const supabase = createClient(await cookies());
-  const { error } = await supabase.auth.resend({ type: "signup", email });
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: `${await getOrigin()}/auth/callback` },
+  });
   if (error)
     return {
       error: "We couldn't resend the email. Please try again in a minute.",
