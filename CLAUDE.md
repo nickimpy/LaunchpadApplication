@@ -38,9 +38,11 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 - `SUPABASE_SECRET_KEY` added to Vercel env vars and deployed (confirmed by user)
 
+**Deployment URL:** production is `https://launchpad-application.vercel.app` (Vercel). Use this — not a placeholder — for Supabase Site URL, redirect URLs, and any absolute links.
+
 **Action items for the user (not yet done):**
 
-- **Supabase dashboard config (exact clicks in the Phase 2 chat):** set **Site URL to the Vercel production URL** (not localhost — email links are prefixed with it), add both the Vercel and `http://localhost:3000/**` redirect URLs, confirm "Confirm email" is on, and update the Confirm signup / Magic Link / Reset Password / Change Email templates to the `token_hash` → `/auth/confirm` format
+- **Supabase dashboard config (exact clicks in the Phase 2 chat):** set **Site URL to `https://launchpad-application.vercel.app`** (not localhost — email links are prefixed with it), add redirect URLs `https://launchpad-application.vercel.app/**` and `http://localhost:3000/**`, confirm "Confirm email" is on, and update the Confirm signup / Magic Link / Reset Password / Change Email templates to the `token_hash` → `/auth/confirm` format
 - **Local dev only (optional):** if running `npm run dev` on a laptop, create `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Supabase → Settings → API), and `SUPABASE_SECRET_KEY`. Not needed for the deployed Vercel site
 
 **Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Migration 0002 (grants — this project doesn't auto-grant table privileges to API roles) pending user paste into the SQL editor.
