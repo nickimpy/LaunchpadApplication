@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { getOrigin } from "@/utils/origin";
+import { emailSendErrorMessage } from "@/utils/auth-errors";
 import { emailError, field } from "@/utils/validation";
 
 export type ResendState = { error?: string; success?: string };
@@ -23,7 +24,10 @@ export async function resendVerification(
   });
   if (error)
     return {
-      error: "We couldn't resend the email. Please try again in a minute.",
+      error: emailSendErrorMessage(
+        error,
+        "We couldn't resend the email. Please try again in a minute.",
+      ),
     };
   return { success: "Sent! Check your inbox for a fresh verification link." };
 }

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 import { getOrigin } from "@/utils/origin";
+import { emailSendErrorMessage } from "@/utils/auth-errors";
 import { ensureStudentRecords } from "@/utils/provisioning";
 import {
   dobError,
@@ -89,7 +90,10 @@ export async function signup(
       return { duplicate: true, values: safeValues };
     return {
       errors: {
-        form: "Something went wrong creating your account. Please try again.",
+        form: emailSendErrorMessage(
+          error,
+          "Something went wrong creating your account. Please try again.",
+        ),
       },
       values: safeValues,
     };

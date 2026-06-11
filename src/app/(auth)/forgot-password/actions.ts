@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { getOrigin } from "@/utils/origin";
+import { emailSendErrorMessage } from "@/utils/auth-errors";
 import { emailError, field } from "@/utils/validation";
 
 export type ResetRequestState = {
@@ -28,7 +29,10 @@ export async function sendPasswordReset(
   });
   if (error)
     return {
-      error: "We couldn't send the reset email. Please try again in a minute.",
+      error: emailSendErrorMessage(
+        error,
+        "We couldn't send the reset email. Please try again in a minute.",
+      ),
       values: { email },
     };
   return {

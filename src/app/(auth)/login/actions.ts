@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getOrigin } from "@/utils/origin";
+import { emailSendErrorMessage } from "@/utils/auth-errors";
 import { emailError, field, passwordError } from "@/utils/validation";
 
 export type LoginState = {
@@ -63,7 +64,10 @@ export async function sendMagicLink(
 
   if (error)
     return {
-      error: "We couldn't send the link. Please try again in a minute.",
+      error: emailSendErrorMessage(
+        error,
+        "We couldn't send the link. Please try again in a minute.",
+      ),
       values: { email },
     };
   return {
