@@ -53,7 +53,19 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Phase 3 QA (user, on phone, after pasting migration 0003):** log in → `/portal` shows the branded step strip/sidebar with all 7 numbered steps: Step 1 actionable ("Not started"), Steps 2–6 greyed with a lock + "Locked until Step 1 is complete", Step 7 "Staff only"; deadlines visible per step. Works without 0003 too, just shows "No deadline set yet".
 
-**Next — Phase 4 (Step 1: Student Information form):** the full Step 1 form (personal/academic/demographic/guardian fields, school dropdown + Other, all six conditional rules, college-compatibility warning + review flag, mid-form save, edit-after-submit), parent link token surfaced on screen on completion (email sending is Phase 9). Replace the placeholder panel in `/portal/steps/1`; drive status via `setStepStatus` in `src/utils/step-engine.ts` (it already handles submit/re-open and unlocking 2–6).
+**Done — Phase 4 (Step 1: Student Information form):**
+
+- Full Step 1 form replaces the placeholder for `/portal/steps/1` (branched inside `src/app/(portal)/portal/steps/[step]/page.tsx` — `stepNumber === 1` renders `<Step1Form>`; all other steps keep their placeholders). Personal / academic / program / demographic / guardian sections, mobile-first, brand tokens, reusing `src/components/forms.tsx`
+- **Question content is verbatim from the 2026 application PDF** (provided by Nick), captured in PRD.md and centralized in `src/utils/step1-options.ts`: program-specific Lightspeed (6 Qs) and Foundations (3 Qs) question sets, demographic option lists, the **7** household-income brackets + "Prefer not to say", graduation years (`Before 2025`..`2028`). Program answers are stored in `applications.program_answers` (jsonb); only the active program's block is persisted
+- **All six PRD conditional rules** wired client-side and re-checked server-side: Foundations hides Lightspeed Qs / Lightspeed hides Foundations Qs; **grad year 2027 or 2028 (juniors) → no program selector, Lightspeed hidden, forced to Foundations**; 2nd-guardian = Yes reveals Guardian 2; school = Other reveals free-text. (Also: gender/pronouns/race "Other" reveal their free-text columns.)
+- **College-compatibility warning:** Foundations post-HS plan = "attend college NOT in Philly…" shows a non-blocking inline warning (points to contact email) and sets `applications.college_warning_flagged = true` for staff review; the student may still continue
+- **Save / submit / edit:** the form uses `noValidate` + full **server-side** validation so "Save progress" persists partial answers (Step 1 → `in_progress`, never downgrades a complete step) while "Submit Step 1" enforces every required field, then calls `setStepStatus(1,'complete')` (unlocks 2–6). After completion the form shows a single "Save changes" button (intent=save) — editing keeps Step 1 `complete` and never re-locks 2–6
+- **Parent link:** on first submit, `applications.parent_link_generated_at` is stamped and the copyable `/parent/{parent_link_token}` link is surfaced on screen (Copy button). **No email/SMS is sent — that's Phase 9.** The `/parent/...` route itself is Phase 5
+- Writes go through the **authenticated** client (RLS already permits own rows): `students` (legal name, preferred name, phone — email stays read-only, managed in Profile to avoid duplicating the auth email-change flow), `applications`, `demographics` (upsert, funder-only), `guardians` (upsert pos 1; upsert/delete pos 2). New files: `src/utils/step1.ts` (server loader `getStep1Data`), `src/app/(portal)/portal/steps/step1-actions.ts` (`saveStep1`), `src/components/portal/step1-form.tsx`; new form primitives `SelectField`/`RadioGroup`/`CheckboxGroup`/`Textarea`/`ActionButton` + `TextField` `readOnly`; new validators in `src/utils/validation.ts`
+- **Migration 0004** (`20260617000004_widen_graduation_year.sql`) drops & re-adds the `applications.graduation_year` check to `'Before 2025'..'2028'`. Validated on local Postgres 16 (stubbed auth/storage): all migrations 0000→0004 apply clean, `'2028'` accepted, old `'Before 2024'` rejected. Lint + production build pass clean
+- **PRD updated:** Step 1 academic/demographic/program-question sections now match the PDF; conditional-rule table updated to "2027 or 2028"; **Step 3** records the two source personal-statement prompts + video option and the decision to **decompose them into smaller scaffolded sub-questions** (not reuse the two long essays)
+
+**Next — Phase 5 (Step 2: Parent Form + E-Signature):** the tokenized, no-login parent page at `/parent/{token}` (the token + on-screen link already exist from Phase 4). Auto-filled read-only student info; availability + conditional concerns; IEP; comments; parent contact; editable consent copy (`cycle_settings.parent_form_consent_text`); native canvas signature pad (signature_pad) storing image + typed name + timestamp + IP to the private `signatures` bucket via a server route (service role — no parent login/RLS session). Submission writes `parent_form_submissions` and flips Step 2 to `complete`. Student (and later admin) can update guardian contact + regenerate the link.
 
 **Done — Phase 2 config:**
 
@@ -71,12 +83,13 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Remaining for the user:**
 
-- Paste migrations **0002** (grants) and **0003** (step deadlines) into the Supabase SQL editor
+- Paste migrations **0002** (grants), **0003** (step deadlines), and **0004** (widen `graduation_year` to `Before 2025`..`2028` — required before Step 1 submit will accept the new grad years) into the Supabase SQL editor
+- **Phase 4 QA:** complete Step 1 as a junior (grad 2027/2028 — never sees Lightspeed, goes to Foundations) and as a senior (chooses a program); trigger the college warning; save halfway and resume; submit and confirm Steps 2–6 unlock; edit Step 1 after submitting and confirm 2–6 stay unlocked; copy the parent link shown on screen
 - Run the Phase 3 phone QA (see "Phase 3 QA" above)
 - Finish the deferred Phase 2 QA (magic link, password reset, duplicate-email prompt, profile edit) as the hourly email quota allows
 - **Local dev only (optional):** if running `npm run dev` on a laptop, create `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Supabase → Settings → API), and `SUPABASE_SECRET_KEY`. Not needed for the deployed Vercel site
 
-**Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Pending user paste into the SQL editor: **0002** (grants — this project doesn't auto-grant table privileges to API roles) and **0003** (placeholder step deadlines; idempotent, safe to re-run).
+**Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Pending user paste into the SQL editor: **0002** (grants — this project doesn't auto-grant table privileges to API roles), **0003** (placeholder step deadlines; idempotent, safe to re-run), and **0004** (widen `graduation_year`; safe to re-run — drops/re-adds the check constraint).
 
 ## Stack (decided, do not revisit)
 

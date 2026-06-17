@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getPortalData } from "@/utils/step-engine";
+import { getStep1Data } from "@/utils/step1";
+import { Step1Form } from "@/components/portal/step1-form";
 import {
   STATUS_LABELS,
   TOTAL_STEPS,
@@ -78,7 +80,9 @@ export default async function StepPage({ params }: { params: Params }) {
       <p className="mb-3 font-bold">{ownerLine}</p>
       <p className="mb-6">{step.summary}</p>
 
-      {step.locked ? (
+      {step.number === 1 ? (
+        <Step1Form data={(await getStep1Data())!} />
+      ) : step.locked ? (
         <div className="rounded-lg border border-grey-tint2 bg-grey-tint3 p-6">
           <h2 className="mb-3 text-lg font-bold">
             Complete Step 1 to unlock this step

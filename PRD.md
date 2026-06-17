@@ -71,9 +71,28 @@ Uses the existing 2026 application form verbatim, minus essays (moved to Step 3)
 
 **Personal Information:** Full Legal Name (First, Last) req; Preferred Name opt; Email req; Phone req; Address (Street, Street 2, City, State, Zip) req.
 
-**Academic Information:** School name (dropdown, "Other" reveals free text) req; GPA (cumulative, weighted) req; Graduation Year (Before 2024 / 2024 / 2025 / 2026 / 2027) req; How did you hear about Launchpad? (referral name) opt.
+**Academic Information:** School name (dropdown, "Other" reveals free text) req; GPA (cumulative, weighted) req; Graduation Year (Before 2025 / 2025 / 2026 / 2027 / 2028) req — show an inline eligibility note (students graduating in 2029 or later are not currently eligible to apply); How did you hear about Launchpad? (referral name) opt.
 
-**Demographic Information** (funder reporting only; does not affect application status): Gender identity (Male / Female / Non-Binary / Prefer not to say / Other) req; Preferred pronouns (he/him / she/her / they/them / Prefer not to say / Other) req; Race/ethnicity multi-select req (American Indian or Alaska Native / Asian / Black or African American / Hispanic, Latino, or Spanish Origin / Middle Eastern or North African / Native Hawaiian or Pacific Islander / White / Prefer not to say / Other); Combined household income (8 brackets + Prefer not to say) req; Number in household req; Did either parent attend or complete college? (Both / One / Neither / Don't know / Prefer not to say) req.
+**Demographic Information** (funder reporting only; does not affect application status): Gender identity (Male / Female / Non-Binary / Prefer not to say / Other) req; Preferred pronouns (he/him / she/her / they/them / Prefer not to say / Other) req; Race/ethnicity multi-select req (American Indian or Alaska Native / Asian / Black or African American / Hispanic, Latino, or Spanish Origin / Middle Eastern or North African / Native Hawaiian or Pacific Islander / White / Prefer not to say / Other); Combined household income req (Less than $25,000 / $25,000 - $49,999 / $50,000 - $74,999 / $75,000 - $99,999 / $100,000 - $149,999 / $150,000 - $199,999 / $200,000 and above / Prefer not to say); Number in household req; Did either parent attend or complete college? (Both / One / Neither / Don't know / Prefer not to say) req.
+
+**Program selection & program-specific questions** (verbatim from the 2026 application PDF):
+
+Program: Launchpad Lightspeed or Launchpad Foundations.
+
+*Lightspeed questions* (shown only to seniors/graduates who pick Lightspeed):
+
+- "Which of the following best describes you?" (graduation status): I am currently a High School Senior on track to graduate in Spring 2026 / I have already graduated high school or obtained my GED
+- "Which of the following best describes you?" (work authorization): I currently have legal work authorization to work in the US / I have applied for legal work authorization to work in the US / I do not have legal work authorization to work in the US
+- "Which of the following skills do you have experience with? (check all that apply)": Python / HTML, CSS / Javascript / Git/GitHub / SQL/databases / API usage and integration / Figma or other wireframing software / ChatGPT or other LLMs / React / None of the above
+- "Which of the following have you done before? (check all that apply)": Taken a technology course in school / Taken a coding course in school / Taken AP Computer Science / Taken a college coding course / Completed an online coding course / Participated in a technology training program / Participated in a workforce development program / Worked part-time / Worked full-time / None of the above
+- "Please share the specific courses/experiences you've completed including dates and outcomes (certifications earned, AP exam scores, credits received, etc.)" [open text]
+- "Which of the following best describes your plans for the 2025-2026 academic year?": I will have no other commitments / I will be working part-time / I will be working full-time / I will be attending college part-time / I will be attending college full-time / I will be both attending college and working
+
+*Foundations questions* (shown to Foundations applicants, including all juniors):
+
+- "Currently, what pathway are you most interested in?": Entrepreneurial Leadership Only - no interest in tech/coding / Leaning entrepreneurial leadership, but open to tech / I'm open to either pathway! / Leading tech/coding but open to entrepreneurial leadership / Tech/Coding Only - no interest in entrepreneurial leadership
+- "How interested are you in pursuing a career in tech?": 1 (no interest) through 5 (only want to pursue a career in tech)
+- "What are your current plans for after high school?": I want to get a good job and work right after high school / I want to take time off after high school but then get a degree / I want to attend CCP/2-year college in Philly right after high school / I want to attend a 4 year college in Philly right after high school / I want to attend college NOT in Philly right after high school
 
 **Parent/Guardian Information:** Guardian 1 first name, last name, email, phone, relationship (free text), all required. Optional second guardian (Yes/No) revealing the same fields.
 
@@ -83,14 +102,14 @@ Uses the existing 2026 application form verbatim, minus essays (moved to Step 3)
 |---|---|---|
 | 1 | Program = Launchpad Foundations | Hide Lightspeed questions |
 | 2 | Program = Lightspeed | Hide Foundations questions |
-| 3 | Graduation Year = 2027 | Hide Lightspeed program info/selection |
-| 4 | Graduation Year = 2027 | Hide Lightspeed questions |
+| 3 | Graduation Year = 2027 or 2028 | Hide Lightspeed program info/selection |
+| 4 | Graduation Year = 2027 or 2028 | Hide Lightspeed questions |
 | 5 | Second guardian = Yes | Show Guardian #2 fields |
 | 6 | School name = Other | Show free-text "What high school do you attend?" |
 
-Juniors (2027) never see Lightspeed and go straight to Foundations questions. Seniors/graduates choose between programs.
+Juniors (graduating 2027 or 2028) never see Lightspeed and go straight to Foundations questions. Seniors/graduates choose between programs.
 
-**College compatibility warning:** if a student selects "I want to attend college NOT in Philly right after high school" (Foundations post-HS plans), show an inline warning (not a hard block): Launchpad is full-time in Philadelphia; contact info@launchpadphilly.org with questions. Student may continue (application flagged for staff review) or stop.
+**College compatibility warning:** if a student selects "I want to attend college NOT in Philly right after high school" (the last option of the Foundations "What are your current plans for after high school?" question), show an inline warning (not a hard block): Launchpad is full-time in Philadelphia; contact info@launchpadphilly.org with questions. Student may continue (application flagged for staff review) or stop.
 
 **Preferred vs. legal name:** communications use preferred name; official forms/documents use legal name.
 
@@ -119,7 +138,15 @@ No parent account. Auto-fills student name, DOB, and high school (read-only). Ac
 
 ## Step 3: Short Answer Questions
 
-Separate from Step 1 for funnel tracking. Parallel with Step 2, either order. Essay scaffolding: break the two main prompts into smaller directed sub-questions (final list TBD). Beta placeholder: single prompt "Why do you want to join Launchpad?"
+Separate from Step 1 for funnel tracking. Parallel with Step 2, either order.
+
+The 2026 application uses two long personal-statement prompts (verbatim source below). **We are NOT reusing these two prompts as-is** — they will be broken into smaller, directed sub-questions (essay scaffolding) so applicants answer focused chunks rather than two 300–500 word essays. The final scaffolded sub-question list is TBD; build Step 3 so prompts are admin-editable data (not code) and the scaffolded set can replace the placeholder later without a code change. Beta placeholder: single prompt "Why do you want to join Launchpad?"
+
+Source prompts (to be decomposed, not used directly):
+
+- Prompt 1: "In 300-500 words, describe a time where you solved a problem. How did you identify the problem, how did you plan your solution, was your solution effective, and what did you learn from the experience?"
+- Prompt 2: "In 300-500 words, tell us why you are interested in Launchpad and how you think Launchpad can help you reach your passions and career goals."
+- Video option (carry forward when scaffolding): applicants may send a video to nick@launchpadphilly.org and zay@launchpadphilly.org, then write "I sent a video" in the field.
 
 ## Step 4: Interview
 

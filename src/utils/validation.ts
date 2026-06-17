@@ -58,3 +58,53 @@ export function preferenceError(value: string): string | null {
     return "Choose how you'd like to receive updates.";
   return null;
 }
+
+// --- Step 1 (Student Information) --------------------------------------------
+
+export function requiredError(value: string, label: string): string | null {
+  if (!value) return `Enter your ${label}.`;
+  return null;
+}
+
+/** A required dropdown / radio choice that must be one of `allowed`. */
+export function choiceError(
+  value: string,
+  allowed: readonly string[],
+  label: string,
+): string | null {
+  if (!value) return `Choose ${label}.`;
+  if (!allowed.includes(value)) return `Choose a valid ${label}.`;
+  return null;
+}
+
+export function gpaError(value: string): string | null {
+  if (!value) return "Enter your GPA.";
+  const n = Number(value);
+  if (Number.isNaN(n)) return "Enter your GPA as a number, like 3.5.";
+  if (n < 0 || n > 6) return "Enter a GPA between 0 and 6.";
+  return null;
+}
+
+export function zipError(value: string): string | null {
+  if (!value) return "Enter your ZIP code.";
+  if (!/^\d{5}(-\d{4})?$/.test(value))
+    return "Enter a 5-digit ZIP code, like 19107.";
+  return null;
+}
+
+export function householdSizeError(value: string): string | null {
+  if (!value) return "Enter the number of people in your household.";
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1 || n > 30)
+    return "Enter a whole number between 1 and 30.";
+  return null;
+}
+
+/** A required multi-select needs at least one chosen option. */
+export function multiSelectError(
+  values: string[],
+  label: string,
+): string | null {
+  if (values.length === 0) return `Choose at least one option for ${label}.`;
+  return null;
+}

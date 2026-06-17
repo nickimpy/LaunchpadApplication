@@ -18,6 +18,7 @@ export function TextField({
   autoComplete,
   optional,
   hint,
+  readOnly,
 }: {
   label: string;
   name: string;
@@ -27,6 +28,86 @@ export function TextField({
   autoComplete?: string;
   optional?: boolean;
   hint?: string;
+  readOnly?: boolean;
+}) {
+  const errorId = error ? `${name}-error` : undefined;
+  const hintId = hint ? `${name}-hint` : undefined;
+  return (
+    <div className="mb-6">
+      <label htmlFor={name} className="block font-bold">
+        {label}
+        {optional && !readOnly && (
+          <span className="font-normal text-grey-tint1"> (optional)</span>
+        )}
+      </label>
+      {hint && (
+        <p id={hintId} className="mt-1 text-xs">
+          {hint}
+        </p>
+      )}
+      <input
+        id={name}
+        name={name}
+        type={type}
+        defaultValue={defaultValue}
+        autoComplete={autoComplete}
+        required={!optional}
+        readOnly={readOnly}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={
+          [errorId, hintId].filter(Boolean).join(" ") || undefined
+        }
+        className={`${inputBase} ${readOnly ? "bg-grey-tint4 text-grey-tint1" : ""} ${error ? "border-orange-dark" : "border-grey-tint1"}`}
+      />
+      {error && (
+        <p id={errorId} className="mt-1 text-xs font-bold text-orange-dark">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+type Option = { value: string; label: string };
+
+/** Normalize a string[] or {value,label}[] into Option[]. */
+function toOptions(options: readonly (string | Option)[]): Option[] {
+  return options.map((o) =>
+    typeof o === "string" ? { value: o, label: o } : o,
+  );
+}
+
+function FieldError({ id, message }: { id?: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p id={id} className="mt-1 text-xs font-bold text-orange-dark">
+      {message}
+    </p>
+  );
+}
+
+export function SelectField({
+  label,
+  name,
+  options,
+  error,
+  defaultValue,
+  autoComplete,
+  optional,
+  hint,
+  placeholder = "Select an option…",
+  onChange,
+}: {
+  label: string;
+  name: string;
+  options: readonly (string | Option)[];
+  error?: string;
+  defaultValue?: string;
+  autoComplete?: string;
+  optional?: boolean;
+  hint?: string;
+  placeholder?: string;
+  onChange?: (value: string) => void;
 }) {
   const errorId = error ? `${name}-error` : undefined;
   const hintId = hint ? `${name}-hint` : undefined;
@@ -43,12 +124,200 @@ export function TextField({
           {hint}
         </p>
       )}
-      <input
+      <select
         id={name}
         name={name}
-        type={type}
-        defaultValue={defaultValue}
+        defaultValue={defaultValue ?? ""}
         autoComplete={autoComplete}
+        required={!optional}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={
+          [errorId, hintId].filter(Boolean).join(" ") || undefined
+        }
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        className={`${inputBase} ${error ? "border-orange-dark" : "border-grey-tint1"}`}
+      >
+        <option value="" disabled>
+          {placeholder}
+        </option>
+        {toOptions(options).map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <FieldError id={errorId} message={error} />
+    </div>
+  );
+}
+
+export function RadioGroup({
+  legend,
+  name,
+  options,
+  error,
+  defaultValue,
+  optional,
+  hint,
+  onChange,
+}: {
+  legend: string;
+  name: string;
+  options: readonly (string | Option)[];
+  error?: string;
+  defaultValue?: string;
+  optional?: boolean;
+  hint?: string;
+  onChange?: (value: string) => void;
+}) {
+  const errorId = error ? `${name}-error` : undefined;
+  const hintId = hint ? `${name}-hint` : undefined;
+  return (
+    <fieldset
+      className="mb-6"
+      aria-describedby={[errorId, hintId].filter(Boolean).join(" ") || undefined}
+    >
+      <legend className="font-bold">
+        {legend}
+        {optional && (
+          <span className="font-normal text-grey-tint1"> (optional)</span>
+        )}
+      </legend>
+      {hint && (
+        <p id={hintId} className="mt-1 text-xs">
+          {hint}
+        </p>
+      )}
+      <div className="mt-3 flex flex-col gap-3">
+        {toOptions(options).map((o) => (
+          <label key={o.value} className="flex items-start gap-3">
+            <input
+              type="radio"
+              name={name}
+              value={o.value}
+              defaultChecked={defaultValue === o.value}
+              required={!optional}
+              onChange={onChange ? () => onChange(o.value) : undefined}
+              className="mt-1 h-5 w-5 shrink-0 accent-teal-dark"
+            />
+            <span>{o.label}</span>
+          </label>
+        ))}
+      </div>
+      <FieldError id={errorId} message={error} />
+    </fieldset>
+  );
+}
+
+export function CheckboxGroup({
+  legend,
+  name,
+  options,
+  error,
+  defaultValues = [],
+  hint,
+  onChange,
+}: {
+  legend: string;
+  name: string;
+  options: readonly (string | Option)[];
+  error?: string;
+  defaultValues?: string[];
+  hint?: string;
+  onChange?: (values: string[]) => void;
+}) {
+  const errorId = error ? `${name}-error` : undefined;
+  const hintId = hint ? `${name}-hint` : undefined;
+  return (
+    <fieldset
+      className="mb-6"
+      aria-describedby={[errorId, hintId].filter(Boolean).join(" ") || undefined}
+    >
+      <legend className="font-bold">{legend}</legend>
+      {hint && (
+        <p id={hintId} className="mt-1 text-xs">
+          {hint}
+        </p>
+      )}
+      <div className="mt-3 flex flex-col gap-3">
+        {toOptions(options).map((o) => (
+          <label key={o.value} className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name={name}
+              value={o.value}
+              defaultChecked={defaultValues.includes(o.value)}
+              onChange={
+                onChange
+                  ? (e) => {
+                      const checked = e.currentTarget.checked;
+                      const next = checked
+                        ? [...defaultValues, o.value]
+                        : defaultValues.filter((v) => v !== o.value);
+                      // Read live state from the DOM so callers get the
+                      // current selection regardless of stale props.
+                      const form = e.currentTarget.form;
+                      if (form) {
+                        const live = Array.from(
+                          form.querySelectorAll<HTMLInputElement>(
+                            `input[name="${name}"]:checked`,
+                          ),
+                        ).map((el) => el.value);
+                        onChange(live);
+                      } else {
+                        onChange(next);
+                      }
+                    }
+                  : undefined
+              }
+              className="mt-1 h-5 w-5 shrink-0 accent-teal-dark"
+            />
+            <span>{o.label}</span>
+          </label>
+        ))}
+      </div>
+      <FieldError id={errorId} message={error} />
+    </fieldset>
+  );
+}
+
+export function Textarea({
+  label,
+  name,
+  error,
+  defaultValue,
+  optional,
+  hint,
+  rows = 4,
+}: {
+  label: string;
+  name: string;
+  error?: string;
+  defaultValue?: string;
+  optional?: boolean;
+  hint?: string;
+  rows?: number;
+}) {
+  const errorId = error ? `${name}-error` : undefined;
+  const hintId = hint ? `${name}-hint` : undefined;
+  return (
+    <div className="mb-6">
+      <label htmlFor={name} className="block font-bold">
+        {label}
+        {optional && (
+          <span className="font-normal text-grey-tint1"> (optional)</span>
+        )}
+      </label>
+      {hint && (
+        <p id={hintId} className="mt-1 text-xs">
+          {hint}
+        </p>
+      )}
+      <textarea
+        id={name}
+        name={name}
+        rows={rows}
+        defaultValue={defaultValue}
         required={!optional}
         aria-invalid={error ? true : undefined}
         aria-describedby={
@@ -56,11 +325,7 @@ export function TextField({
         }
         className={`${inputBase} ${error ? "border-orange-dark" : "border-grey-tint1"}`}
       />
-      {error && (
-        <p id={errorId} className="mt-1 text-xs font-bold text-orange-dark">
-          {error}
-        </p>
-      )}
+      <FieldError id={errorId} message={error} />
     </div>
   );
 }
@@ -131,6 +396,44 @@ export function SubmitButton({
         focus-visible:ring-teal-dark focus-visible:ring-offset-2 disabled:opacity-60"
     >
       {pending ? pendingLabel : children}
+    </button>
+  );
+}
+
+/**
+ * Submit button that can carry a name/value (so a form with more than one
+ * submit — e.g. "Save progress" vs "Submit" — can tell which was clicked) and
+ * a primary/secondary style. Disabled while the form action is pending.
+ */
+export function ActionButton({
+  children,
+  name,
+  value,
+  variant = "primary",
+  pendingLabel,
+}: {
+  children: ReactNode;
+  name?: string;
+  value?: string;
+  variant?: "primary" | "secondary";
+  pendingLabel?: string;
+}) {
+  const { pending } = useFormStatus();
+  const styles =
+    variant === "primary"
+      ? "bg-teal-dark text-white hover:brightness-110"
+      : "border border-grey-tint1 bg-white text-teal-dark hover:bg-grey-tint4";
+  return (
+    <button
+      type="submit"
+      name={name}
+      value={value}
+      disabled={pending}
+      className={`w-full rounded-md px-3 py-3 text-base font-bold focus:outline-none
+        focus-visible:ring-2 focus-visible:ring-teal-dark focus-visible:ring-offset-2
+        disabled:opacity-60 sm:w-auto sm:min-w-44 ${styles}`}
+    >
+      {pending && pendingLabel ? pendingLabel : children}
     </button>
   );
 }
