@@ -112,6 +112,7 @@ export async function saveStep1(
 
   const collegeWarningFlagged =
     program === "foundations" &&
+    !isJunior &&
     programAnswers.fnd_post_hs_plan === COLLEGE_WARNING_OPTION;
 
   // --- validation (full only on submit) ------------------------------------

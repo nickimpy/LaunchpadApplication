@@ -106,7 +106,7 @@ export function Step1Form({ data }: { data: Step1Data }) {
   const showLightspeed = effectiveProgram === "lightspeed";
   const showFoundations = effectiveProgram === "foundations";
   const showCollegeWarning =
-    showFoundations && postHsPlan === COLLEGE_WARNING_OPTION;
+    showFoundations && !isJunior && postHsPlan === COLLEGE_WARNING_OPTION;
 
   const schoolOptions = [
     ...data.schools.map((s) => ({ value: s.id, label: s.name })),
