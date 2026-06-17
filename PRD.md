@@ -102,12 +102,12 @@ Program: Launchpad Lightspeed or Launchpad Foundations.
 |---|---|---|
 | 1 | Program = Launchpad Foundations | Hide Lightspeed questions |
 | 2 | Program = Lightspeed | Hide Foundations questions |
-| 3 | Graduation Year = 2027 or 2028 | Hide Lightspeed program info/selection |
-| 4 | Graduation Year = 2027 or 2028 | Hide Lightspeed questions |
+| 3 | Graduation Year = 2028 | Hide Lightspeed program info/selection |
+| 4 | Graduation Year = 2028 | Hide Lightspeed questions |
 | 5 | Second guardian = Yes | Show Guardian #2 fields |
 | 6 | School name = Other | Show free-text "What high school do you attend?" |
 
-Juniors (graduating 2027 or 2028) never see Lightspeed and go straight to Foundations questions. Seniors/graduates choose between programs.
+Juniors (class of 2028 only) never see Lightspeed and go straight to Foundations questions. Class of 2027 are rising seniors and choose between programs normally. Seniors/graduates (2026 and earlier) also choose between programs.
 
 **College compatibility warning:** if a student selects "I want to attend college NOT in Philly right after high school" (the last option of the Foundations "What are your current plans for after high school?" question), show an inline warning (not a hard block): Launchpad is full-time in Philadelphia; contact info@launchpadphilly.org with questions. Student may continue (application flagged for staff review) or stop.
 

@@ -25,9 +25,10 @@ export const GRADUATION_YEARS = [
   "2028",
 ] as const;
 
-// Juniors (these grad years) never see Lightspeed — they go straight to
-// Foundations (PRD conditional rules 3 & 4).
-export const JUNIOR_GRAD_YEARS: readonly string[] = ["2027", "2028"];
+// Juniors (class of 2028) never see Lightspeed — they go straight to
+// Foundations (PRD conditional rules 3 & 4). Class of 2027 are rising seniors
+// and can choose either program.
+export const JUNIOR_GRAD_YEARS: readonly string[] = ["2028"];
 
 export const PROGRAMS = [
   { value: "lightspeed", label: "Launchpad Lightspeed" },
