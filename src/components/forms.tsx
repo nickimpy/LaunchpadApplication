@@ -77,7 +77,7 @@ function toOptions(options: readonly (string | Option)[]): Option[] {
   );
 }
 
-function FieldError({ id, message }: { id?: string; message?: string }) {
+export function FieldError({ id, message }: { id?: string; message?: string }) {
   if (!message) return null;
   return (
     <p id={id} className="mt-1 text-xs font-bold text-orange-dark">

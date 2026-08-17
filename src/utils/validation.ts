@@ -108,3 +108,58 @@ export function multiSelectError(
   if (values.length === 0) return `Choose at least one option for ${label}.`;
   return null;
 }
+
+// --- Step 2 (Parent / Guardian Form) -----------------------------------------
+// These messages address the parent, not the student, so they don't reuse the
+// "Enter your ..." phrasing above.
+
+export function parentRequiredError(
+  value: string,
+  label: string,
+): string | null {
+  if (!value) return `Enter ${label}.`;
+  return null;
+}
+
+export function parentEmailError(email: string): string | null {
+  if (!email) return "Enter the best email address to reach you.";
+  if (!EMAIL_RE.test(email))
+    return "Enter a valid email address, like you@example.com.";
+  return null;
+}
+
+export function parentPhoneError(phone: string): string | null {
+  if (!phone) return "Enter the best phone number to reach you.";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 10 || digits.length > 15)
+    return "Enter a valid phone number with area code.";
+  return null;
+}
+
+/** The concerns box is required only when availability isn't a plain "yes". */
+export function availabilityConcernsError(
+  availability: string,
+  concerns: string,
+): string | null {
+  if (availability === "no" || availability === "not_sure") {
+    if (!concerns) return "Tell us what conflicts or concerns you have.";
+  }
+  return null;
+}
+
+// A cleared/blank canvas still exports a valid PNG, just a very small one, so
+// a byte floor is what actually distinguishes "signed" from "didn't sign".
+// Measured against the real 3:1 canvas used on the parent form; a genuine
+// signature lands in the tens of KB, an empty one under 1 KB.
+export const MIN_SIGNATURE_BYTES = 1200;
+
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+/** True when `buffer` is a PNG with enough ink on it to be a real signature. */
+export function isPlausiblePng(
+  buffer: Buffer,
+  minBytes: number = MIN_SIGNATURE_BYTES,
+): boolean {
+  if (buffer.length < minBytes) return false;
+  return buffer.subarray(0, PNG_MAGIC.length).equals(PNG_MAGIC);
+}

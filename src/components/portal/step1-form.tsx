@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { saveStep1 } from "@/app/(portal)/portal/steps/step1-actions";
 import type { Step1Data } from "@/utils/step1";
+import { ParentLinkBox } from "@/components/portal/parent-link-box";
 import {
   Alert,
   ActionButton,
@@ -39,46 +40,6 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
     <h2 className="mb-3 mt-9 border-b border-grey-tint2 pb-1 text-lg font-bold first:mt-0">
       {children}
     </h2>
-  );
-}
-
-function ParentLink({ url }: { url: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="mb-6 rounded-lg border border-green-dark bg-green-tint3 p-6">
-      <h2 className="mb-3 text-lg font-bold">Your parent / guardian form link</h2>
-      <p className="mb-3">
-        Share this link with your parent or guardian so they can complete Step 2.
-        No account needed. (We&apos;ll also email and text it to them
-        automatically once that feature is turned on.)
-      </p>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <input
-          readOnly
-          value={url}
-          aria-label="Parent form link"
-          onFocus={(e) => e.currentTarget.select()}
-          className="block w-full rounded-md border border-grey-tint1 bg-white px-3 py-3 text-base text-grey"
-        />
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(url);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            } catch {
-              setCopied(false);
-            }
-          }}
-          className="shrink-0 rounded-md bg-teal-dark px-6 py-3 text-base font-bold text-white
-            hover:brightness-110 focus:outline-none focus-visible:ring-2
-            focus-visible:ring-teal-dark focus-visible:ring-offset-2"
-        >
-          {copied ? "Copied!" : "Copy link"}
-        </button>
-      </div>
-    </div>
   );
 }
 
@@ -124,7 +85,7 @@ export function Step1Form({ data }: { data: Step1Data }) {
           Please fix the highlighted fields below, then submit again.
         </Alert>
       )}
-      {data.parentLinkUrl && <ParentLink url={data.parentLinkUrl} />}
+      {data.parentLinkUrl && <ParentLinkBox url={data.parentLinkUrl} />}
 
       <form action={action} noValidate>
         {/* ---- Personal ---- */}

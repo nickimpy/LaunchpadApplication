@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { getPortalData } from "@/utils/step-engine";
 import { getStep1Data } from "@/utils/step1";
 import { Step1Form } from "@/components/portal/step1-form";
+import { ParentLinkBox } from "@/components/portal/parent-link-box";
+import { getParentLinkUrl } from "@/utils/parent-link";
 import {
   STATUS_LABELS,
   TOTAL_STEPS,
@@ -39,6 +41,67 @@ const BADGE_STYLES: Record<StepStatus, string> = {
   pending_verification: "bg-orange-tint3 text-orange-dark",
   complete: "bg-green-tint3 text-green-dark",
 };
+
+/**
+ * Step 2 is the parent's to complete, so the student's view is share-the-link
+ * plus status. It deliberately does NOT show the parent's answers: those are
+ * admin-only (parent_form_submissions has an admin-select RLS policy), and
+ * staff-facing review belongs in the admin dashboard.
+ */
+async function Step2Panel({
+  applicationId,
+  complete,
+}: {
+  applicationId: string;
+  complete: boolean;
+}) {
+  const url = await getParentLinkUrl(applicationId);
+
+  if (complete) {
+    return (
+      <div className="rounded-lg border border-green-dark bg-green-tint3 p-6">
+        <h2 className="mb-3 text-lg font-bold">
+          Your parent / guardian form is in
+        </h2>
+        <p>
+          Your parent or guardian submitted and signed their form — this step is
+          done. Launchpad staff can see their answers; they aren&apos;t shown
+          here.
+        </p>
+      </div>
+    );
+  }
+
+  if (!url) {
+    return (
+      <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
+        <h2 className="mb-3 text-lg font-bold">
+          Finish Step 1 to get your parent&apos;s link
+        </h2>
+        <p>
+          As soon as you submit Step 1, we&apos;ll generate a link you can send
+          to your parent or guardian so they can complete this step.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <ParentLinkBox url={url} allowRegenerate />
+      <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
+        <h2 className="mb-3 text-lg font-bold">
+          Waiting on your parent or guardian
+        </h2>
+        <p>
+          They don&apos;t need an account — the link above opens their form
+          directly, with your information already filled in. This step turns
+          complete as soon as they sign and submit it.
+        </p>
+      </div>
+    </>
+  );
+}
 
 export default async function StepPage({ params }: { params: Params }) {
   const stepNumber = parseStep((await params).step);
@@ -115,17 +178,10 @@ export default async function StepPage({ params }: { params: Params }) {
           </p>
         </div>
       ) : step.owner === "parent" ? (
-        <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 text-lg font-bold">
-            Your parent or guardian takes it from here
-          </h2>
-          <p>
-            When you finished Step 1, we sent your parent or guardian a link to
-            their form by email (and text, if they opted in).
-            You&apos;ll also be able to copy the link yourself to share with
-            them. This step turns complete as soon as they submit.
-          </p>
-        </div>
+        <Step2Panel
+          applicationId={data.applicationId}
+          complete={step.status === "complete"}
+        />
       ) : (
         <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-lg font-bold">This form is coming soon</h2>
