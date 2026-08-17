@@ -83,13 +83,13 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Remaining for the user:**
 
-- Paste migrations **0002** (grants), **0003** (step deadlines), and **0004** (widen `graduation_year` to `Before 2025`..`2028` — required before Step 1 submit will accept the new grad years) into the Supabase SQL editor
 - **Phase 4 QA:** complete Step 1 as a junior (grad 2027/2028 — never sees Lightspeed, goes to Foundations) and as a senior (chooses a program); trigger the college warning; save halfway and resume; submit and confirm Steps 2–6 unlock; edit Step 1 after submitting and confirm 2–6 stay unlocked; copy the parent link shown on screen
 - Run the Phase 3 phone QA (see "Phase 3 QA" above)
 - Finish the deferred Phase 2 QA (magic link, password reset, duplicate-email prompt, profile edit) as the hourly email quota allows
-- **Local dev only (optional):** if running `npm run dev` on a laptop, create `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (Supabase → Settings → API), and `SUPABASE_SECRET_KEY`. Not needed for the deployed Vercel site
 
-**Applied to live Supabase:** migrations 0000 (schema) and 0001 (seed) confirmed applied; Vercel env vars set and deployed. Pending user paste into the SQL editor: **0002** (grants — this project doesn't auto-grant table privileges to API roles), **0003** (placeholder step deadlines; idempotent, safe to re-run), and **0004** (widen `graduation_year`; safe to re-run — drops/re-adds the check constraint).
+**Applied to live Supabase (confirmed 2026-08-17 after a ~2-month gap):** migrations 0000–0004 all confirmed applied — 0002 (grants) verified by successful authenticated reads/writes on `/portal/steps/1`; 0003 (step deadlines) verified directly against `cycle_settings`; 0004 (widened `graduation_year`) verified by saving Step 1 with grad year 2028. Vercel env vars set and deployed. Supabase free-tier project had auto-paused from inactivity and needed a minute to wake back up — expect this after any long gap.
+
+**Local dev environment (set up 2026-08-17):** repo cloned locally, `gh`/`vercel` CLIs linked (`vercel link --project launchpad-application`), `.env.local` populated and `npm run dev` confirmed working end-to-end against live Supabase. **Caveat:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SECRET_KEY` are flagged **Sensitive** in Vercel, which is one-way and means `vercel env pull` can never fetch their real values (returns a placeholder, breaks local dev with "Invalid supabaseUrl"). Values were copied by hand from the Supabase dashboard instead. Fix for good: delete and re-add those three vars in Vercel as non-sensitive, then `vercel env pull` will work normally on any machine.
 
 ## Stack (decided, do not revisit)
 
