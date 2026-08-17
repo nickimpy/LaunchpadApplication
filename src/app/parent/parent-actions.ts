@@ -22,6 +22,7 @@ import {
   AVAILABILITY_VALUES,
   IEP_VALUES,
   type ParentFormState,
+  type ParentFormValues,
 } from "@/utils/parent-options";
 
 const UUID_RE =
@@ -78,7 +79,7 @@ export async function submitParentForm(
   if (existing) return { submitted: true };
 
   // --- read fields ---------------------------------------------------------
-  const v = {
+  const v: ParentFormValues = {
     wants_program_info: field(formData, "wants_program_info"),
     availability: field(formData, "availability"),
     availability_concerns: field(formData, "availability_concerns"),
@@ -90,8 +91,8 @@ export async function submitParentForm(
     parent_email: field(formData, "parent_email"),
     parent_phone: field(formData, "parent_phone"),
     signature_typed_name: field(formData, "signature_typed_name"),
-    signature_data_url: field(formData, "signature_data_url"),
   };
+  const signatureDataUrl = field(formData, "signature_data_url");
 
   // --- validate ------------------------------------------------------------
   const errors: FieldErrors = {};
@@ -121,15 +122,15 @@ export async function submitParentForm(
     parentRequiredError(v.signature_typed_name, "your full legal name"),
   );
 
-  const signature = v.signature_data_url
-    ? decodeSignature(v.signature_data_url)
-    : null;
+  const signature = signatureDataUrl ? decodeSignature(signatureDataUrl) : null;
   if (!signature || !isPlausiblePng(signature)) {
     errors.signature_data_url =
       "Draw your signature above, or type your full legal name below.";
   }
 
-  if (Object.keys(errors).length > 0) return { errors };
+  // Always hand the answers back — React 19 clears uncontrolled fields once
+  // the action returns, so without this a single bad field empties the form.
+  if (Object.keys(errors).length > 0) return { errors, values: v };
 
   // --- consent snapshot ----------------------------------------------------
   // Re-read the live copy rather than trusting anything echoed back by the
@@ -142,7 +143,7 @@ export async function submitParentForm(
     .maybeSingle();
   const consentText =
     typeof consentRow?.value === "string" ? consentRow.value : "";
-  if (!consentText) return { errors: { form: GENERIC_FAILURE } };
+  if (!consentText) return { errors: { form: GENERIC_FAILURE }, values: v };
 
   // --- signature image -----------------------------------------------------
   // One submission per application (unique FK), so a stable path is safe and
@@ -154,7 +155,7 @@ export async function submitParentForm(
       contentType: "image/png",
       upsert: true,
     });
-  if (uploadError) return { errors: { form: GENERIC_FAILURE } };
+  if (uploadError) return { errors: { form: GENERIC_FAILURE }, values: v };
 
   // --- store the submission ------------------------------------------------
   const { error: insertError } = await supabase
@@ -182,7 +183,7 @@ export async function submitParentForm(
   if (insertError) {
     // 23505 = unique violation: a concurrent submit (second tab) already won.
     // That's a success from this parent's point of view, not an error.
-    if (insertError.code !== "23505") return { errors: { form: GENERIC_FAILURE } };
+    if (insertError.code !== "23505") return { errors: { form: GENERIC_FAILURE }, values: v };
   }
 
   // --- flip Step 2 to complete --------------------------------------------
@@ -200,7 +201,7 @@ export async function submitParentForm(
     })
     .eq("application_id", applicationId)
     .eq("step_number", 2);
-  if (stepError) return { errors: { form: GENERIC_FAILURE } };
+  if (stepError) return { errors: { form: GENERIC_FAILURE }, values: v };
 
   return { submitted: true };
 }

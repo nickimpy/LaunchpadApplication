@@ -44,9 +44,12 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 }
 
 export function Step1Form({ data }: { data: Step1Data }) {
-  const { values } = data;
   const [state, action] = useActionState<Step1State, FormData>(saveStep1, {});
   const err = state.errors;
+  // Prefer the answers echoed back by the action: React 19 resets uncontrolled
+  // fields after a form action, so on a validation error these are what keeps
+  // the student's typing on screen instead of blanking the whole form.
+  const values = state.values ?? data.values;
 
   const [gradYear, setGradYear] = useState(values.graduation_year);
   const [program, setProgram] = useState(values.program);

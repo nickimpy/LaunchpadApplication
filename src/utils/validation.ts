@@ -147,19 +147,21 @@ export function availabilityConcernsError(
   return null;
 }
 
-// A cleared/blank canvas still exports a valid PNG, just a very small one, so
-// a byte floor is what actually distinguishes "signed" from "didn't sign".
-// Measured against the real 3:1 canvas used on the parent form; a genuine
-// signature lands in the tens of KB, an empty one under 1 KB.
-export const MIN_SIGNATURE_BYTES = 1200;
+// Deliberately NOT an "is there ink on it?" check. A blank canvas and a real
+// signature both compress to wildly different sizes depending on canvas
+// resolution, so a byte threshold either rejects genuine faint signatures or
+// accepts blank ones. Whether anything was actually drawn is decided on the
+// client, which can inspect the canvas directly; the required typed legal name
+// is the independently-validated part of the signature record either way.
+// This is a structural sanity check: a real PNG, not absurdly large.
+const MIN_PNG_BYTES = 100;
+export const MAX_SIGNATURE_BYTES = 1_500_000; // well under the 2mb action limit
 
 const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
-/** True when `buffer` is a PNG with enough ink on it to be a real signature. */
-export function isPlausiblePng(
-  buffer: Buffer,
-  minBytes: number = MIN_SIGNATURE_BYTES,
-): boolean {
-  if (buffer.length < minBytes) return false;
+/** True when `buffer` is a structurally valid PNG of a sane size. */
+export function isPlausiblePng(buffer: Buffer): boolean {
+  if (buffer.length < MIN_PNG_BYTES) return false;
+  if (buffer.length > MAX_SIGNATURE_BYTES) return false;
   return buffer.subarray(0, PNG_MAGIC.length).equals(PNG_MAGIC);
 }

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getPortalData, setStepStatus } from "@/utils/step-engine";
+import type { Step1Values } from "@/utils/step1";
 import {
   field,
   nameError,
@@ -221,9 +222,23 @@ export async function saveStep1(
     };
     checkGuardian(1, g1);
     if (v.has_guardian2) checkGuardian(2, g2);
-
-    if (Object.keys(errors).length > 0) return { errors };
   }
+
+  // A failed submit is persisted like a save rather than thrown away — losing
+  // a long form to one bad field is the worst thing this page could do.
+  const hasErrors = Object.keys(errors).length > 0;
+
+  /** Everything just typed, echoed back so the form can re-render with it. */
+  const echo = (): Step1Values => ({
+    ...v,
+    // Read-only in the form and ignored when persisting (Profile owns it), but
+    // still echoed so the field doesn't render blank after an error.
+    email: field(formData, "email"),
+    program: program === "lightspeed" || program === "foundations" ? program : "",
+    program_answers: programAnswers,
+    guardian1: g1,
+    guardian2: g2,
+  });
 
   // --- persist -------------------------------------------------------------
   const orNull = (s: string) => (s ? s : null);
@@ -237,7 +252,7 @@ export async function saveStep1(
       phone: v.phone,
     })
     .eq("id", portal.userId);
-  if (studentErr) return { errors: { form: SAVE_FAILED } };
+  if (studentErr) return { errors: { form: SAVE_FAILED }, values: echo() };
 
   const { error: appErr } = await supabase
     .from("applications")
@@ -255,13 +270,14 @@ export async function saveStep1(
       program: program === "lightspeed" || program === "foundations" ? program : null,
       program_answers: programAnswers,
       college_warning_flagged: collegeWarningFlagged,
-      // Stamp the parent-link generation time on first completion.
-      ...(intent === "submit" && !wasComplete
+      // Stamp the parent-link generation time on first completion — but not
+      // when validation failed, since the step isn't actually complete.
+      ...(intent === "submit" && !wasComplete && !hasErrors
         ? { parent_link_generated_at: new Date().toISOString() }
         : {}),
     })
     .eq("id", applicationId);
-  if (appErr) return { errors: { form: SAVE_FAILED } };
+  if (appErr) return { errors: { form: SAVE_FAILED }, values: echo() };
 
   const { error: demoErr } = await supabase.from("demographics").upsert(
     {
@@ -280,7 +296,7 @@ export async function saveStep1(
     },
     { onConflict: "application_id" },
   );
-  if (demoErr) return { errors: { form: SAVE_FAILED } };
+  if (demoErr) return { errors: { form: SAVE_FAILED }, values: echo() };
 
   // Guardian 1 always upserted; columns are NOT NULL but accept the empty
   // strings that a partial save leaves behind.
@@ -289,7 +305,7 @@ export async function saveStep1(
     .upsert({ application_id: applicationId, position: 1, ...g1 }, {
       onConflict: "application_id,position",
     });
-  if (g1Err) return { errors: { form: SAVE_FAILED } };
+  if (g1Err) return { errors: { form: SAVE_FAILED }, values: echo() };
 
   if (v.has_guardian2) {
     const { error: g2Err } = await supabase
@@ -297,7 +313,7 @@ export async function saveStep1(
       .upsert({ application_id: applicationId, position: 2, ...g2 }, {
         onConflict: "application_id,position",
       });
-    if (g2Err) return { errors: { form: SAVE_FAILED } };
+    if (g2Err) return { errors: { form: SAVE_FAILED }, values: echo() };
   } else {
     await supabase
       .from("guardians")
@@ -307,14 +323,23 @@ export async function saveStep1(
   }
 
   // --- step status ---------------------------------------------------------
+  // The answers are safely stored by this point, so a failed submit can now
+  // report its errors without having cost the student anything. It moves the
+  // step to in_progress, never complete.
+  if (hasErrors) {
+    if (!wasComplete) await setStepStatus(1, "in_progress");
+    revalidatePath("/portal", "layout");
+    return { errors, values: echo() };
+  }
+
   if (intent === "submit") {
     const { error } = await setStepStatus(1, "complete");
-    if (error) return { errors: { form: error } };
+    if (error) return { errors: { form: error }, values: echo() };
   } else if (!wasComplete) {
     // Saving partial progress moves a not-started step to in_progress, but
     // never downgrades a step that was already submitted/complete.
     const { error } = await setStepStatus(1, "in_progress");
-    if (error) return { errors: { form: error } };
+    if (error) return { errors: { form: error }, values: echo() };
   }
 
   // Refresh the sidebar (steps 2–6 unlock on first complete) and this page.

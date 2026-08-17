@@ -4,6 +4,7 @@
 // application logic (PRD).
 
 import type { FieldErrors } from "@/utils/validation";
+import type { Step1Values } from "@/utils/step1";
 
 // Sentinel value for the "Other" entry in the school dropdown (real schools
 // are uuids). Lives here, not in the "use server" action file, because that
@@ -15,6 +16,12 @@ export type Step1State = {
   success?: string;
   /** Set after a successful first submit so the form can show the parent link. */
   justCompleted?: boolean;
+  /**
+   * The answers just submitted, echoed back on a validation error. React 19
+   * resets uncontrolled fields once a form action returns, so without this the
+   * whole form empties itself the moment one field fails validation.
+   */
+  values?: Step1Values;
 };
 
 export const GRADUATION_YEARS = [

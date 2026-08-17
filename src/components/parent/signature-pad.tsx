@@ -29,20 +29,31 @@ export function SignaturePad({
   onReady?: (handle: SignaturePadHandle | null) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const hiddenRef = useRef<HTMLInputElement | null>(null);
   const padRef = useRef<SignaturePadLib | null>(null);
-  const [hasInk, setHasInk] = useState(false);
+  const hiddenRef = useRef<HTMLInputElement | null>(null);
+  // Held in React state and rendered as a CONTROLLED hidden input: React 19
+  // resets uncontrolled fields after a form action returns, which would clear
+  // the signature while the drawing was still visibly on the canvas.
+  const [dataUrl, setDataUrl] = useState("");
+  const hasInk = dataUrl !== "";
 
   const errorId = error ? `${name}-error` : undefined;
 
-  const syncHidden = useCallback((empty: boolean) => {
-    const pad = padRef.current;
-    if (hiddenRef.current) {
-      hiddenRef.current.value =
-        empty || !pad ? "" : pad.toDataURL("image/png");
-    }
-    setHasInk(!empty);
+  // Writes the DOM node directly as well as setting state. A state update is
+  // async, so during submit it would land AFTER the browser has already
+  // serialized the form — the value has to be in the DOM synchronously.
+  const setSignature = useCallback((value: string) => {
+    if (hiddenRef.current) hiddenRef.current.value = value;
+    setDataUrl(value);
   }, []);
+
+  const syncFromPad = useCallback(
+    (empty: boolean) => {
+      const pad = padRef.current;
+      setSignature(empty || !pad ? "" : pad.toDataURL("image/png"));
+    },
+    [setSignature],
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -54,33 +65,43 @@ export function SignaturePad({
     });
     padRef.current = pad;
 
-    // Retina/mobile: the canvas backing store must be scaled to the device
-    // pixel ratio or strokes render blurry and land offset from the finger.
-    // Resizing clears the canvas, so preserve and restore any existing drawing.
+    // Retina/mobile: the backing store must be scaled to the device pixel
+    // ratio or strokes render blurry and land offset from the finger. Resizing
+    // clears the canvas, so preserve and restore any existing drawing.
+    let lastWidth = 0;
     const resize = () => {
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      const rect = canvas.getBoundingClientRect();
+      // Skip while the element has no layout yet (hidden container, first
+      // paint) — sizing off a ~0-width box produces a useless canvas.
+      if (rect.width < 1) return;
+      if (Math.abs(rect.width - lastWidth) < 1) return;
+      lastWidth = rect.width;
+
       const data = pad.toData();
-      const { width, height } = canvas.getBoundingClientRect();
-      canvas.width = width * ratio;
-      canvas.height = height * ratio;
+      canvas.width = rect.width * ratio;
+      canvas.height = rect.height * ratio;
       canvas.getContext("2d")?.scale(ratio, ratio);
       pad.clear();
       if (data.length) pad.fromData(data);
     };
 
     resize();
-    window.addEventListener("resize", resize);
+    // Fires once the element actually gets laid out, and again on rotate or
+    // window resize — covers what a one-shot measurement at mount misses.
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
 
-    const onEnd = () => syncHidden(pad.isEmpty());
+    const onEnd = () => syncFromPad(pad.isEmpty());
     pad.addEventListener("endStroke", onEnd);
 
     return () => {
       pad.removeEventListener("endStroke", onEnd);
-      window.removeEventListener("resize", resize);
+      observer.disconnect();
       pad.off();
       padRef.current = null;
     };
-  }, [syncHidden]);
+  }, [syncFromPad]);
 
   // Registered in its own effect so the handle's identity doesn't depend on the
   // pad setup effect re-running.
@@ -114,21 +135,19 @@ export function SignaturePad({
         ctx.fillText(text, width / 2, height / 2);
         ctx.restore();
 
-        // Written straight to the hidden input: pad.isEmpty() stays true for
-        // canvas-API drawing, since signature_pad only tracks its own strokes.
-        if (hiddenRef.current) {
-          hiddenRef.current.value = canvas.toDataURL("image/png");
-        }
-        setHasInk(true);
+        // Read straight off the canvas: pad.isEmpty() stays true for drawing
+        // done via the canvas API, since signature_pad tracks only its own
+        // strokes.
+        setSignature(canvas.toDataURL("image/png"));
         return true;
       },
     });
     return () => onReady(null);
-  }, [onReady]);
+  }, [onReady, setSignature]);
 
   const clear = () => {
     padRef.current?.clear();
-    syncHidden(true);
+    syncFromPad(true);
   };
 
   return (
@@ -148,7 +167,7 @@ export function SignaturePad({
         className={`mt-1 block h-36 w-full touch-none rounded-md border bg-white
           ${error ? "border-orange-dark" : "border-grey-tint1"}`}
       />
-      <input ref={hiddenRef} type="hidden" name={name} defaultValue="" />
+      <input ref={hiddenRef} type="hidden" name={name} value={dataUrl} />
       <div className="mt-3 flex items-center gap-3">
         <button
           type="button"

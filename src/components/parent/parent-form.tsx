@@ -77,7 +77,26 @@ export function ParentForm({
     padRef.current = handle;
   }, []);
 
+  // Answers echoed back by the action win over the guardian prefill: React 19
+  // resets uncontrolled fields once the action returns, so these are what keeps
+  // a parent's typing on screen when one field fails validation.
+  const prior = state.values;
   const prefill = data.guardianPrefill;
+  const dv = {
+    wants_program_info: prior?.wants_program_info ?? "",
+    availability: prior?.availability ?? "",
+    availability_concerns: prior?.availability_concerns ?? "",
+    iep: prior?.iep ?? "",
+    comments: prior?.comments ?? "",
+    parent_first_name: prior?.parent_first_name ?? prefill?.first_name ?? "",
+    parent_last_name: prior?.parent_last_name ?? prefill?.last_name ?? "",
+    parent_relationship:
+      prior?.parent_relationship ?? prefill?.relationship ?? "",
+    parent_email: prior?.parent_email ?? prefill?.email ?? "",
+    parent_phone: prior?.parent_phone ?? prefill?.phone ?? "",
+    signature_typed_name: prior?.signature_typed_name ?? "",
+  };
+
   const needsConcerns = availability === "no" || availability === "not_sure";
 
   if (state.submitted) {
@@ -138,6 +157,7 @@ export function ParentForm({
           legend="Before we get started, do you want to learn a bit more about Launchpad?"
           name="wants_program_info"
           options={WANTS_INFO_OPTIONS}
+          defaultValue={dv.wants_program_info}
           optional
           onChange={setWantsInfo}
         />
@@ -173,6 +193,7 @@ export function ParentForm({
           legend={availabilityLegend}
           name="availability"
           options={AVAILABILITY_OPTIONS}
+          defaultValue={dv.availability}
           error={err?.availability}
           onChange={setAvailability}
         />
@@ -180,6 +201,7 @@ export function ParentForm({
           <Textarea
             label="Please share what conflicts or concerns you have with the summer schedule"
             name="availability_concerns"
+            defaultValue={dv.availability_concerns}
             error={err?.availability_concerns}
           />
         )}
@@ -187,11 +209,13 @@ export function ParentForm({
           legend="Does your student have an IEP?"
           name="iep"
           options={IEP_OPTIONS}
+          defaultValue={dv.iep}
           optional
         />
         <Textarea
           label="Is there anything you want us to know as we consider your student's application?"
           name="comments"
+          defaultValue={dv.comments}
           optional
         />
 
@@ -199,21 +223,21 @@ export function ParentForm({
         <TextField
           label="Your first name"
           name="parent_first_name"
-          defaultValue={prefill?.first_name}
+          defaultValue={dv.parent_first_name}
           autoComplete="given-name"
           error={err?.parent_first_name}
         />
         <TextField
           label="Your last name"
           name="parent_last_name"
-          defaultValue={prefill?.last_name}
+          defaultValue={dv.parent_last_name}
           autoComplete="family-name"
           error={err?.parent_last_name}
         />
         <TextField
           label="Your relationship to the student"
           name="parent_relationship"
-          defaultValue={prefill?.relationship}
+          defaultValue={dv.parent_relationship}
           hint="For example: mother, father, uncle, grandmother, caregiver."
           error={err?.parent_relationship}
         />
@@ -221,7 +245,7 @@ export function ParentForm({
           label="Best email for updates"
           name="parent_email"
           type="email"
-          defaultValue={prefill?.email}
+          defaultValue={dv.parent_email}
           autoComplete="email"
           error={err?.parent_email}
         />
@@ -229,7 +253,7 @@ export function ParentForm({
           label="Best phone number to call or text"
           name="parent_phone"
           type="tel"
-          defaultValue={prefill?.phone}
+          defaultValue={dv.parent_phone}
           autoComplete="tel"
           error={err?.parent_phone}
         />
@@ -246,6 +270,7 @@ export function ParentForm({
         <TextField
           label="Type your full legal name"
           name="signature_typed_name"
+          defaultValue={dv.signature_typed_name}
           autoComplete="name"
           hint="Typing your name here confirms you agree to the statement above."
           error={err?.signature_typed_name}
