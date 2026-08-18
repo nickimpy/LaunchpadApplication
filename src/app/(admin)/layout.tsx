@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { createClient } from "@/utils/supabase/server";
 import { getAdminUser, hasStudentRecord } from "@/utils/admin";
 import { logout } from "@/app/(portal)/profile/actions";
 
@@ -10,10 +12,18 @@ export default async function AdminLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const admin = await getAdminUser();
-  // Anyone who isn't an active admin is bounced to the student login. We
-  // deliberately don't say "you're not an admin" — that would confirm the
-  // dashboard exists to anyone who guesses the URL.
-  if (!admin) redirect("/login");
+  // Anyone who isn't an active admin is bounced out. We deliberately never say
+  // "you're not an admin" — that would confirm the dashboard exists to anyone
+  // who guesses the URL. Signed-in non-staff go straight to their own portal
+  // rather than via /login, which would only bounce them there anyway and
+  // makes the app look broken while testing.
+  if (!admin) {
+    const supabase = createClient(await cookies());
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    redirect(user ? "/portal" : "/login");
+  }
 
   const alsoStudent = await hasStudentRecord(admin.id);
 
