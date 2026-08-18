@@ -136,7 +136,7 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 - **Split into two modules on purpose:** `release-pdf-render.ts` is a PURE renderer (takes a `ReleaseData` object, no Supabase/cookies/`server-only`, `generatedAt` injected so output is deterministic), and `release-pdf.ts` fetches the data through the admin's own session. The split exists so the document can be rendered in a throwaway script and **actually looked at** — which is how both bugs below were found. Keep it that way.
 - Uses `consent_text_snapshot`, the wording the parent agreed to at signing — never today's `cycle_settings` value — so the document stays a true record after staff edit the live copy.
 - Downloads are audit-logged (`records_release.download`): this is the moment a signed consent leaves the system.
-- **Still missing the logo:** pdf-lib embeds PNG/JPG only and `brand/` has SVG only, so the letterhead is currently styled text. Drop a PNG or JPG of the logo into `public/brand/` and it can be embedded.
+- **Letterhead carries the logo**, read from `public/brand/01-main-color-launchpad-logo.png` (added by Nick 2026-08-18) via `node:fs` rather than fetching our own URL — no network hop, and identical behaviour locally and on Vercel. pdf-lib cannot embed SVG, which is why the PNG exists alongside the SVG. If the file is ever missing the letterhead silently falls back to text, so the document never fails over branding.
 
 **Never combine `dateStyle`/`timeStyle` with `timeZoneName` in `toLocaleString` (shipped broken for ~20 minutes, 2026-08-18):**
 

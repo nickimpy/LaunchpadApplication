@@ -1,4 +1,6 @@
 import "server-only";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import {
@@ -46,10 +48,27 @@ export async function buildReleasePdf(
   } | null;
   const school = application.schools as unknown as { name: string | null } | null;
 
+  // Read from the filesystem rather than fetching our own URL: no network hop,
+  // and it works identically in local dev and on Vercel.
+  let logoPng: ArrayBuffer | null = null;
+  try {
+    const file = await readFile(
+      path.join(process.cwd(), "public", "brand", "01-main-color-launchpad-logo.png"),
+    );
+    logoPng = file.buffer.slice(
+      file.byteOffset,
+      file.byteOffset + file.byteLength,
+    ) as ArrayBuffer;
+  } catch {
+    // Letterhead falls back to text-only; never worth failing the document.
+  }
+
   let signaturePng: ArrayBuffer | null = null;
-  const path = form.signature_image_path as string | null;
-  if (path) {
-    const { data: file } = await supabase.storage.from("signatures").download(path);
+  const signaturePath = form.signature_image_path as string | null;
+  if (signaturePath) {
+    const { data: file } = await supabase.storage
+      .from("signatures")
+      .download(signaturePath);
     if (file) signaturePng = await file.arrayBuffer();
   }
 
@@ -79,6 +98,7 @@ export async function buildReleasePdf(
     iep: (form.iep as string | null) ?? null,
     comments: (form.comments as string | null) ?? null,
     generatedAt: new Date().toISOString(),
+    logoPng,
   };
 
   return { bytes: await renderReleasePdf(data), filename: releaseFilename(data) };

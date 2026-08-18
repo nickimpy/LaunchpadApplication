@@ -34,6 +34,8 @@ export type ReleaseData = {
   comments: string | null;
   /** Passed in rather than read from the clock, so output is deterministic. */
   generatedAt: string;
+  /** Letterhead mark. PNG/JPG only — pdf-lib cannot embed SVG. */
+  logoPng?: ArrayBuffer | null;
 };
 
 // Building 21 brand colours, matching the portal.
@@ -152,19 +154,50 @@ export async function renderReleasePdf(data: ReleaseData): Promise<Uint8Array> {
   };
 
   // ---- Letterhead -------------------------------------------------------
-  page.drawText("LAUNCHPAD PHILLY", {
-    x: MARGIN,
-    y: y - 17,
-    size: 17,
-    font: bold,
-    color: TEAL,
-  });
-  y -= 26;
-  write("801 Market Street, Philadelphia, PA 19107  ·  launchpadphilly.org", {
-    size: 8.5,
-    color: LIGHT,
-    gap: 10,
-  });
+  // The mark is close to square, so it sits beside the address rather than
+  // above the title — keeps the header short on a one-page document.
+  let logoDrawn = false;
+  if (data.logoPng) {
+    try {
+      const logo = await pdf.embedPng(data.logoPng);
+      const h = 52;
+      const w = (logo.width / logo.height) * h;
+      page.drawImage(logo, { x: MARGIN, y: y - h, width: w, height: h });
+      page.drawText("LAUNCHPAD PHILLY", {
+        x: MARGIN + w + 14,
+        y: y - 24,
+        size: 15,
+        font: bold,
+        color: TEAL,
+      });
+      page.drawText("801 Market Street, Philadelphia, PA 19107  ·  launchpadphilly.org", {
+        x: MARGIN + w + 14,
+        y: y - 39,
+        size: 8.5,
+        font: regular,
+        color: LIGHT,
+      });
+      y -= h + 12;
+      logoDrawn = true;
+    } catch {
+      // Fall through to the text-only letterhead below.
+    }
+  }
+  if (!logoDrawn) {
+    page.drawText("LAUNCHPAD PHILLY", {
+      x: MARGIN,
+      y: y - 17,
+      size: 17,
+      font: bold,
+      color: TEAL,
+    });
+    y -= 26;
+    write("801 Market Street, Philadelphia, PA 19107  ·  launchpadphilly.org", {
+      size: 8.5,
+      color: LIGHT,
+      gap: 10,
+    });
+  }
 
   write("Authorization for Release of Student Records", {
     font: bold,
