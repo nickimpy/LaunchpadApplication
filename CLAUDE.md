@@ -129,6 +129,21 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Deferred to Phase 8 (as scoped in BUILD_PLAN):** Track A/B **auto**-assignment from the partner-school list (the inline override exists and is respected), C2L verification toggles for Steps 5/6, and bulk counselor sign-off — that last one is really a bulk version of the Phase 8 verification toggle, which is why it isn't here.
 
+**Records-release PDF (added 2026-08-18, on Nick's request):**
+
+- **Why:** the signed parent consent is what schools require before releasing a transcript, so staff need a document they can send. `/admin/applicants/[id]/release` returns it as a PDF.
+- Built with **pdf-lib** (pure JS, fine on serverless) rather than browser print-to-PDF, because Phase 9 will likely want to email these to schools automatically — that needs a buffer the server can produce.
+- **Split into two modules on purpose:** `release-pdf-render.ts` is a PURE renderer (takes a `ReleaseData` object, no Supabase/cookies/`server-only`, `generatedAt` injected so output is deterministic), and `release-pdf.ts` fetches the data through the admin's own session. The split exists so the document can be rendered in a throwaway script and **actually looked at** — which is how both bugs below were found. Keep it that way.
+- Uses `consent_text_snapshot`, the wording the parent agreed to at signing — never today's `cycle_settings` value — so the document stays a true record after staff edit the live copy.
+- Downloads are audit-logged (`records_release.download`): this is the moment a signed consent leaves the system.
+- **Still missing the logo:** pdf-lib embeds PNG/JPG only and `brand/` has SVG only, so the letterhead is currently styled text. Drop a PNG or JPG of the logo into `public/brand/` and it can be embedded.
+
+**Never combine `dateStyle`/`timeStyle` with `timeZoneName` in `toLocaleString` (shipped broken for ~20 minutes, 2026-08-18):**
+
+- The spec forbids mixing those shorthands with individual component options, and it **throws a TypeError** instead of degrading. `formatDateTime` did exactly this, which crashed every page that rendered a timestamp — including the whole applicant profile — moments after the "timezone fix" commit.
+- `tsc`, lint, and `next build` were all green again. It surfaced only when the PDF render script actually executed the function.
+- `src/utils/dates.ts` now uses explicit `month`/`day`/`year`/`hour`/`minute` options. **Any new formatter should follow it rather than reaching for dateStyle.**
+
 **A `"use server"` file may ONLY export async functions (crashed the applicant profile, 2026-08-18):**
 
 - `/admin/applicants/[id]` returned a blank error page in production. Vercel's runtime log gave `TypeError: l.map is not a function` — `vercel logs launchpad-application.vercel.app --json` is how to get these; the browser only shows "This page couldn't load".

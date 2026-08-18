@@ -215,17 +215,28 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
                       <Field key={key} label={key.replace(/_/g, " ")} value={value} />
                     ))}
                 </dl>
-                <p className="mt-6">
+                <div className="mt-6 flex flex-wrap items-center gap-6">
+                  {/* The document schools ask for before releasing a
+                      transcript — signature, consent text, and identifiers
+                      in one printable page. */}
+                  <a
+                    className="rounded-md bg-teal-dark px-3 py-3 text-base font-bold text-white
+                      hover:brightness-110 focus:outline-none focus-visible:ring-2
+                      focus-visible:ring-teal-dark focus-visible:ring-offset-2"
+                    href={`/admin/applicants/${profile.applicationId}/release`}
+                  >
+                    Download records release (PDF)
+                  </a>
                   <Link
-                    className="font-bold text-teal-dark underline"
+                    className="text-xs font-bold text-teal-dark underline"
                     href={`/admin/documents?bucket=signatures&path=${encodeURIComponent(
                       String((profile.parentForm as Record<string, unknown>).signature_image_path),
                     )}`}
                     prefetch={false}
                   >
-                    View the signature
+                    View signature image
                   </Link>
-                </p>
+                </div>
                 <details className="mt-6">
                   <summary className="cursor-pointer text-xs font-bold">
                     Consent text they agreed to

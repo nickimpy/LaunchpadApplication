@@ -10,14 +10,24 @@
 
 export const PROGRAM_TIME_ZONE = "America/New_York";
 
-/** e.g. "Aug 18, 2026, 1:31 AM EDT" */
+/**
+ * e.g. "Aug 18, 2026, 1:31 AM EDT".
+ *
+ * Uses explicit component options, NOT dateStyle/timeStyle: the spec forbids
+ * combining those shorthands with individual options like timeZoneName, and
+ * doing so throws a TypeError rather than degrading — which crashed the whole
+ * applicant profile page.
+ */
 export function formatDateTime(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleString("en-US", {
     timeZone: PROGRAM_TIME_ZONE,
-    dateStyle: "medium",
-    timeStyle: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
     timeZoneName: "short",
   });
 }
@@ -28,6 +38,8 @@ export function formatDate(iso: string): string {
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString("en-US", {
     timeZone: PROGRAM_TIME_ZONE,
-    dateStyle: "medium",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   });
 }

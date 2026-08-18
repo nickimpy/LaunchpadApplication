@@ -1,0 +1,142 @@
+Priority,Area,Where it appears,Type,Current text,Your new text,Notes
+1,Deadlines,cycle_settings: step_deadlines,Setting (dates),1: 2027-01-15 | 2: 2027-01-31 | 3: 2027-01-31 | 4: 2027-03-01 | 5: 2027-03-15 | 6: 2027-03-15 | 7: 2027-04-15,,Placeholders I invented — all seven need your real dates. Shown on every step page.
+1,General,cycle_settings: contact_email,Setting,info@launchpadphilly.org,,Shown on every step and in error messages. The PRD also names apply@launchpadphilly.org — decide which applicants should see.
+1,Parent form,cycle_settings: parent_form_consent_text,Setting (legal),TBD — consent language pending review (see PRD),,"The text parents e-sign. PRD has a proposed draft covering records release, permission to apply, data use, and SMS consent. Needs review by whoever owns records-release consent today."
+1,Program info,cycle_settings: summer_dates,Setting,TBD — set in admin settings,,"Shown to parents in the availability question, e.g. 'June 22 – July 31, 2027'."
+1,Program info,cycle_settings: summer_location,Setting,"801 Market St, Philadelphia, PA",,Confirm for this cycle.
+1,Program info,cycle_settings: program_info_lightspeed,Setting,TBD — Lightspeed program description,,"Shown on Step 1 when a student picks Lightspeed, and to parents who ask to learn more."
+1,Program info,cycle_settings: program_info_foundations,Setting,TBD — Foundations program description,,"Same, for Foundations."
+1,Step 3,Video option — NOT BUILT,Decision needed,Applicants may email a video instead of writing,,"Carried in the PRD from the paper form. Tell me whether beta should offer it and to which address, and I'll build it."
+1,Step 3,essay_prompts row 1 (sort_order 1),Essay prompt,Why do you want to join Launchpad?,,"Beta placeholder. Replace with the scaffolded set — one row per sub-question, in order. Pure data: no code change or deploy."
+1,Step 3,essay_prompts — add rows below,Essay prompt,"(add as many as you need, numbered in order)",,PRD: decompose the two long 300–500 word prompts into smaller directed sub-questions.
+1,Steps 5 & 6,cycle_settings: c2l_application_url,Setting (URL),(empty),,C2LPHL application link. The button stays hidden until this is filled in.
+1,Steps 5 & 6,cycle_settings: c2l_documents_url,Setting (URL),(empty),,C2LPHL document-upload link. Same — hidden until filled.
+2,Step 1 form,step1-form.tsx,Field label,Legal first name,,
+2,Step 1 form,step1-form.tsx,Field label,Legal last name,,
+2,Step 1 form,step1-form.tsx,Field label,Preferred name,,
+2,Step 1 form,step1-form.tsx,Field label,Email,,
+2,Step 1 form,step1-form.tsx,Field label,Phone number,,
+2,Step 1 form,step1-form.tsx,Field label,Street address,,
+2,Step 1 form,step1-form.tsx,Field label,Street address line 2,,
+2,Step 1 form,step1-form.tsx,Field label,City,,
+2,Step 1 form,step1-form.tsx,Field label,State,,
+2,Step 1 form,step1-form.tsx,Field label,ZIP code,,
+2,Step 1 form,step1-form.tsx,Field label,What school do you attend?,,
+2,Step 1 form,step1-form.tsx,Field label,What high school do you attend?,,
+2,Step 1 form,step1-form.tsx,Field label,Cumulative (weighted) GPA,,
+2,Step 1 form,step1-form.tsx,Field label,Graduation year,,
+2,Step 1 form,step1-form.tsx,Field label,How did you hear about Launchpad?,,
+2,Step 1 form,step1-form.tsx,Field label,"Please share the specific courses/experiences you've completed including dates and outcomes (certifications earned, AP exam scores, credits received, etc.)",,
+2,Step 1 form,step1-form.tsx,Field label,Gender identity,,
+2,Step 1 form,step1-form.tsx,Field label,Please describe your gender identity,,
+2,Step 1 form,step1-form.tsx,Field label,Preferred pronouns,,
+2,Step 1 form,step1-form.tsx,Field label,Please share your pronouns,,
+2,Step 1 form,step1-form.tsx,Field label,Please describe your race/ethnicity,,
+2,Step 1 form,step1-form.tsx,Field label,Combined household income,,
+2,Step 1 form,step1-form.tsx,Field label,Number of people in your household,,
+2,Step 1 form,step1-form.tsx,Field label,Did either parent attend or complete college?,,
+2,Step 1 form,step1-form.tsx,Field label,Guardian's first name,,
+2,Step 1 form,step1-form.tsx,Field label,Guardian's last name,,
+2,Step 1 form,step1-form.tsx,Field label,Guardian's email,,
+2,Step 1 form,step1-form.tsx,Field label,Guardian's phone number,,
+2,Step 1 form,step1-form.tsx,Field label,Relationship to you,,
+2,Step 1 form,step1-form.tsx,Field label,Second guardian's first name,,
+2,Step 1 form,step1-form.tsx,Field label,Second guardian's last name,,
+2,Step 1 form,step1-form.tsx,Field label,Second guardian's email,,
+2,Step 1 form,step1-form.tsx,Field label,Second guardian's phone number,,
+2,Step 1 form,step1-form.tsx,Helper text,What you'd like us to call you in messages.,,
+2,Step 1 form,step1-form.tsx,Helper text,"This is your account email. To change it, go to your Profile.",,
+2,Step 1 form,step1-form.tsx,Helper text,"Your cumulative weighted GPA, for example 3.5.",,
+2,Step 1 form,step1-form.tsx,Helper text,Students graduating in 2029 or later are not currently eligible to apply.,,
+2,Step 1 form,step1-form.tsx,Helper text,"For example: mother, father, grandmother, legal guardian.",,
+2,Step 1 form,step1-form.tsx,Question,Which program are you applying to?,,
+2,Step 1 form,step1-form.tsx,Question,Which of the following best describes you?,,
+2,Step 1 form,step1-form.tsx,Question,Which of the following skills do you have experience with? (check all that apply),,
+2,Step 1 form,step1-form.tsx,Question,Which of the following have you done before? (check all that apply),,
+2,Step 1 form,step1-form.tsx,Question,Which of the following best describes your plans for the 2025-2026 academic year?,,
+2,Step 1 form,step1-form.tsx,Question,"Currently, what pathway are you most interested in?",,
+2,Step 1 form,step1-form.tsx,Question,How interested are you in pursuing a career in tech?,,
+2,Step 1 form,step1-form.tsx,Question,What are your current plans for after high school?,,
+2,Step 1 form,step1-form.tsx,Question,Race / ethnicity (check all that apply),,
+2,Step 1 form,step1-form.tsx,Question,Would you like to add a second parent or guardian?,,
+2,Step 1 — Student Information,steps.ts (step 1 description),Body copy,"Tell us about yourself: contact details, school, program choice, and your parent or guardian's contact information.",,The explainer paragraph at the top of the step page.
+2,Step 1 — Student Information,steps.ts (step 1 name),Step name,Student Information,,"Sidebar, step heading, admin table."
+2,Step 2 parent form,parent-form.tsx,Field label,Student name,,
+2,Step 2 parent form,parent-form.tsx,Field label,Student date of birth,,
+2,Step 2 parent form,parent-form.tsx,Field label,Student high school,,
+2,Step 2 parent form,parent-form.tsx,Field label,Please share what conflicts or concerns you have with the summer schedule,,
+2,Step 2 parent form,parent-form.tsx,Field label,Is there anything you want us to know as we consider your student's application?,,
+2,Step 2 parent form,parent-form.tsx,Field label,Your first name,,
+2,Step 2 parent form,parent-form.tsx,Field label,Your last name,,
+2,Step 2 parent form,parent-form.tsx,Field label,Your relationship to the student,,
+2,Step 2 parent form,parent-form.tsx,Field label,Best email for updates,,
+2,Step 2 parent form,parent-form.tsx,Field label,Best phone number to call or text,,
+2,Step 2 parent form,parent-form.tsx,Field label,Type your full legal name,,
+2,Step 2 parent form,parent-form.tsx,Helper text,Filled in from your student's application.,,
+2,Step 2 parent form,parent-form.tsx,Helper text,"For example: mother, father, uncle, grandmother, caregiver.",,
+2,Step 2 parent form,parent-form.tsx,Helper text,Typing your name here confirms you agree to the statement above.,,
+2,Step 2 parent form,parent-form.tsx,Question,"Before we get started, do you want to learn a bit more about Launchpad?",,
+2,Step 2 parent form,parent-form.tsx,Question,Does your student have an IEP?,,
+2,Step 2 — Parent / Guardian Form,steps.ts (step 2 description),Body copy,"Your parent or guardian completes a short form — no account needed. They get the link by email or text once you finish Step 1, and you can share it with them too.",,The explainer paragraph at the top of the step page.
+2,Step 2 — Parent / Guardian Form,steps.ts (step 2 name),Step name,Parent / Guardian Form,,"Sidebar, step heading, admin table."
+2,Step 3 — Short Answer Questions,steps.ts (step 3 description),Body copy,A few short written questions so we can get to know you. You can save your answers and come back anytime.,,The explainer paragraph at the top of the step page.
+2,Step 3 — Short Answer Questions,steps.ts (step 3 name),Step name,Short Answer Questions,,"Sidebar, step heading, admin table."
+2,Step 4 — Interview,steps.ts (step 4 description),Body copy,An interview at your school or at Launchpad. Launchpad staff record the outcome here when it's done.,,The explainer paragraph at the top of the step page.
+2,Step 4 — Interview,steps.ts (step 4 name),Step name,Interview,,"Sidebar, step heading, admin table."
+2,Step 5 instructions,c2l-options.ts,Button label,Open the C2LPHL application,,
+2,Step 5 instructions,c2l-options.ts,Checkbox label,I applied to C2LPHL and marked Launchpad as my top choice,,
+2,Step 5 instructions,c2l-options.ts,Instruction 1,Apply to Career Connected Learning PHL (C2LPHL) on their website.,,
+2,Step 5 instructions,c2l-options.ts,Instruction 2,Choose Launchpad as your top choice.,,
+2,Step 5 instructions,c2l-options.ts,Instruction 3,"Use the same legal name and date of birth you gave us here — the two systems are matched on those, so a mismatch can hold up your application.",,
+2,Step 5 — C2LPHL Application,steps.ts (step 5 description),Body copy,"Apply to Career Connected Learning PHL (C2LPHL) on their website and mark Launchpad as your top choice, then report it here. Launchpad staff verify it.",,The explainer paragraph at the top of the step page.
+2,Step 5 — C2LPHL Application,steps.ts (step 5 name),Step name,C2LPHL Application,,"Sidebar, step heading, admin table."
+2,Step 6 instructions,c2l-options.ts,Button label,Open C2LPHL to upload documents,,
+2,Step 6 instructions,c2l-options.ts,Checkbox label,I uploaded my required documents to C2LPHL,,
+2,Step 6 instructions,c2l-options.ts,Instruction 1,Upload the documents C2LPHL asks for in their system — not here.,,
+2,Step 6 instructions,c2l-options.ts,Instruction 2,Make sure every document is for the same student name and date of birth you gave us.,,
+2,Step 6 instructions,c2l-options.ts,Instruction 3,"C2LPHL sets these deadlines, and they often land late in the cycle. We'll let you know when we hear.",,
+2,Step 6 — C2LPHL Required Documents,steps.ts (step 6 description),Body copy,"Upload your required documents in the C2LPHL system, then report it here. Launchpad staff verify it.",,The explainer paragraph at the top of the step page.
+2,Step 6 — C2LPHL Required Documents,steps.ts (step 6 name),Step name,C2LPHL Required Documents,,"Sidebar, step heading, admin table."
+2,Step 7 — Admissions Decision,steps.ts (step 7 description),Body copy,Launchpad staff review your completed application and make a decision. You'll get an email when your decision is ready to view here.,,The explainer paragraph at the top of the step page.
+2,Step 7 — Admissions Decision,steps.ts (step 7 name),Step name,Admissions Decision,,"Sidebar, step heading, admin table."
+3,Error messages,validation.ts,Error message,Enter your email address.,,
+3,Error messages,validation.ts,Error message,"Enter a valid email address, like you@example.com.",,
+3,Error messages,validation.ts,Error message,Enter a password.,,
+3,Error messages,validation.ts,Error message,Your password must be at least 8 characters.,,
+3,Error messages,validation.ts,Error message,Enter your [field].,,
+3,Error messages,validation.ts,Error message,Enter your phone number.,,
+3,Error messages,validation.ts,Error message,Enter a valid phone number with area code.,,
+3,Error messages,validation.ts,Error message,Enter your date of birth.,,
+3,Error messages,validation.ts,Error message,Enter a valid date of birth.,,
+3,Error messages,validation.ts,Error message,Date of birth can't be in the future.,,
+3,Error messages,validation.ts,Error message,You must be at least 13 years old to create an account.,,
+3,Error messages,validation.ts,Error message,Choose how you'd like to receive updates.,,
+3,Error messages,validation.ts,Error message,Choose [field].,,
+3,Error messages,validation.ts,Error message,Choose a valid [field].,,
+3,Error messages,validation.ts,Error message,Enter your GPA.,,
+3,Error messages,validation.ts,Error message,"Enter your GPA as a number, like 3.5.",,
+3,Error messages,validation.ts,Error message,Enter a GPA between 0 and 6.,,
+3,Error messages,validation.ts,Error message,Enter your ZIP code.,,
+3,Error messages,validation.ts,Error message,"Enter a 5-digit ZIP code, like 19107.",,
+3,Error messages,validation.ts,Error message,Enter the number of people in your household.,,
+3,Error messages,validation.ts,Error message,Enter a whole number between 1 and 30.,,
+3,Error messages,validation.ts,Error message,Choose at least one option for [field].,,
+3,Error messages,validation.ts,Error message,Enter [field].,,
+3,Error messages,validation.ts,Error message,Enter the best email address to reach you.,,
+3,Error messages,validation.ts,Error message,Enter the best phone number to reach you.,,
+3,Error messages,validation.ts,Error message,Tell us what conflicts or concerns you have.,,
+3,Step 1 answer choices,step1-options.ts — GRADUATION_YEARS,Answer options,Before 2025 | 2025 | 2026 | 2027 | 2028,,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — PROGRAMS,Answer options,Launchpad Lightspeed | Launchpad Foundations,,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — GENDER_OPTIONS,Answer options,Male | Female | Non-Binary | Prefer not to say | Other,,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — PRONOUN_OPTIONS,Answer options,he/him | she/her | they/them | Prefer not to say | Other,,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — RACE_OPTIONS,Answer options,"American Indian or Alaska Native | Asian | Black or African American | Hispanic, Latino, or Spanish Origin | Middle Eastern or North African | Native Hawaiian or Pacific Islander | White | Prefer not to say | Other",,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — HOUSEHOLD_INCOME_OPTIONS,Answer options,"Less than $25,000 | $25,000 - $49,999 | $50,000 - $74,999 | $75,000 - $99,999 | $100,000 - $149,999 | $150,000 - $199,999 | $200,000 and above | Prefer not to say",,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — PARENT_COLLEGE_OPTIONS,Answer options,Both | One | Neither | Don't know | Prefer not to say,,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — LS_GRAD_STATUS_OPTIONS,Answer options,I am currently a High School Senior on track to graduate in Spring 2026 | I have already graduated high school or obtained my GED,,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — LS_WORK_AUTH_OPTIONS,Answer options,I currently have legal work authorization to work in the US | I have applied for legal work authorization to work in the US | I do not have legal work authorization to work in the US,,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — LS_SKILLS_OPTIONS,Answer options,"Python | HTML, CSS | Javascript | Git/GitHub | SQL/databases | API usage and integration | Figma or other wireframing software | ChatGPT or other LLMs | React | None of the above",,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — LS_EXPERIENCE_OPTIONS,Answer options,Taken a technology course in school | Taken a coding course in school | Taken AP Computer Science | Taken a college coding course | Completed an online coding course | Participated in a technology training program | Participated in a workforce development program | Worked part-time | Worked full-time | None of the above,,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — LS_ACADEMIC_YEAR_PLAN_OPTIONS,Answer options,I will have no other commitments | I will be working part-time | I will be working full-time | I will be attending college part-time | I will be attending college full-time | I will be both attending college and working,,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — FND_PATHWAY_OPTIONS,Answer options,"Entrepreneurial Leadership Only - no interest in tech/coding | Leaning entrepreneurial leadership, but open to tech | I'm open to either pathway! | Leading tech/coding but open to entrepreneurial leadership | Tech/Coding Only - no interest in entrepreneurial leadership",,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — FND_TECH_INTEREST_OPTIONS,Answer options,1 — I have no interest in pursuing a career in tech | 2 | 3 | 4 | 5 — I only want to pursue a career in tech,,A 1–5 scale; only the endpoints carry wording. Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
+3,Step 1 answer choices,step1-options.ts — FND_POST_HS_OPTIONS,Answer options,I want to get a good job and work right after high school | I want to take time off after high school but then get a degree | I want to attend CCP/2-year college in Philly right after high school | I want to attend a 4 year college in Philly right after high school | I want to attend college NOT in Philly right after high school,,Verbatim from the 2026 paper form. Flag anything that should change; the list order is the order students see.
