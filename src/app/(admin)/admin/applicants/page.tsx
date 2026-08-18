@@ -7,6 +7,7 @@ import {
   SORT_OPTIONS,
 } from "@/utils/applicants";
 import { STEPS, STATUS_LABELS, type StepStatus } from "@/utils/steps";
+import { InlineTrack } from "@/components/admin/inline-track";
 
 export const metadata: Metadata = { title: "Applicants — Launchpad Admin" };
 
@@ -252,7 +253,13 @@ export default async function ApplicantsPage({
                   </td>
                   <td className="px-3 py-3">{r.graduationYear ?? "—"}</td>
                   <td className="px-3 py-3 capitalize">{r.program ?? "—"}</td>
-                  <td className="px-3 py-3">{r.track ?? "—"}</td>
+                  <td className="px-3 py-3">
+                    <InlineTrack
+                      applicationId={r.applicationId}
+                      track={r.track}
+                      label={`${r.firstName} ${r.lastName}`}
+                    />
+                  </td>
                   <td className="px-3 py-3">
                     <StatusPips statuses={r.statuses} />
                   </td>
