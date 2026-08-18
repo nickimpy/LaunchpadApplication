@@ -7,6 +7,7 @@ import { ParentLinkBox } from "@/components/portal/parent-link-box";
 import {
   Alert,
   ActionButton,
+  useStatusFocus,
   CheckboxGroup,
   RadioGroup,
   SelectField,
@@ -50,6 +51,9 @@ export function Step1Form({ data }: { data: Step1Data }) {
   // fields after a form action, so on a validation error these are what keeps
   // the student's typing on screen instead of blanking the whole form.
   const values = state.values ?? data.values;
+  // After a submit you're usually at the bottom of this long form; pull the
+  // result banner into view (and announce it) instead of leaving it unseen.
+  const statusRef = useStatusFocus(state);
 
   const [gradYear, setGradYear] = useState(values.graduation_year);
   const [program, setProgram] = useState(values.program);
@@ -81,13 +85,15 @@ export function Step1Form({ data }: { data: Step1Data }) {
 
   return (
     <>
-      {state.success && <Alert tone="success">{state.success}</Alert>}
-      {err?.form && <Alert tone="error">{err.form}</Alert>}
-      {err && !err.form && (
-        <Alert tone="error">
-          Please fix the highlighted fields below, then submit again.
-        </Alert>
-      )}
+      <div ref={statusRef} tabIndex={-1} className="focus:outline-none">
+        {state.success && <Alert tone="success">{state.success}</Alert>}
+        {err?.form && <Alert tone="error">{err.form}</Alert>}
+        {err && !err.form && (
+          <Alert tone="error">
+            Please fix the highlighted fields below, then submit again.
+          </Alert>
+        )}
+      </div>
       {data.parentLinkUrl && <ParentLinkBox url={data.parentLinkUrl} />}
 
       <form action={action} noValidate>

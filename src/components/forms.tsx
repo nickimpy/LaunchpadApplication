@@ -466,6 +466,32 @@ export function ActionButton({
   );
 }
 
+/**
+ * Brings a form's success/error banner into view after a submit and moves
+ * focus to it. On a long form you're usually at the bottom by the time you
+ * hit submit, so the banner at the top goes unseen — you can't tell whether
+ * anything happened. Focus (rather than scroll alone) also makes screen
+ * readers announce the result.
+ *
+ * Pass something whose identity changes per submit — the action state object.
+ * The first run is skipped so the page doesn't steal focus on load.
+ */
+export function useStatusFocus(token: unknown) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const isFirstRun = useRef(true);
+  useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    const node = ref.current;
+    if (!node) return;
+    node.focus({ preventScroll: true });
+    node.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [token]);
+  return ref;
+}
+
 export function Alert({
   tone,
   children,

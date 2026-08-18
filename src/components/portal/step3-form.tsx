@@ -4,7 +4,12 @@ import { useActionState, useState } from "react";
 import { saveStep3 } from "@/app/(portal)/portal/steps/step3-actions";
 import type { Step3Data, Step3Prompt } from "@/utils/step3";
 import { responseField, type Step3State } from "@/utils/step3-options";
-import { ActionButton, Alert, Textarea } from "@/components/forms";
+import {
+  ActionButton,
+  Alert,
+  Textarea,
+  useStatusFocus,
+} from "@/components/forms";
 
 function countWords(value: string): number {
   const trimmed = value.trim();
@@ -45,6 +50,7 @@ function PromptField({
 export function Step3Form({ data }: { data: Step3Data }) {
   const [state, action] = useActionState<Step3State, FormData>(saveStep3, {});
   const err = state.errors;
+  const statusRef = useStatusFocus(state);
 
   if (data.prompts.length === 0) {
     return (
@@ -60,14 +66,16 @@ export function Step3Form({ data }: { data: Step3Data }) {
 
   return (
     <>
-      {state.success && <Alert tone="success">{state.success}</Alert>}
-      {err?.form && <Alert tone="error">{err.form}</Alert>}
-      {err && !err.form && (
-        <Alert tone="error">
-          Please fix the highlighted questions below, then submit again. Your
-          answers have been saved.
-        </Alert>
-      )}
+      <div ref={statusRef} tabIndex={-1} className="focus:outline-none">
+        {state.success && <Alert tone="success">{state.success}</Alert>}
+        {err?.form && <Alert tone="error">{err.form}</Alert>}
+        {err && !err.form && (
+          <Alert tone="error">
+            Please fix the highlighted questions below, then submit again. Your
+            answers have been saved.
+          </Alert>
+        )}
+      </div>
 
       <form action={action} noValidate>
         {data.prompts.map((prompt) => (

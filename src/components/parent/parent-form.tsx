@@ -12,6 +12,7 @@ import {
 import {
   ActionButton,
   Alert,
+  useStatusFocus,
   RadioGroup,
   TextField,
   Textarea,
@@ -68,6 +69,9 @@ export function ParentForm({
     {},
   );
   const err = state.errors;
+  // Parents reach the bottom of this form before submitting, so the result —
+  // errors, or the thank-you panel — has to come to them.
+  const statusRef = useStatusFocus(state);
 
   const [wantsInfo, setWantsInfo] = useState("");
   const [availability, setAvailability] = useState("");
@@ -101,10 +105,12 @@ export function ParentForm({
 
   if (state.submitted) {
     return (
-      <ParentFormComplete
-        studentFirstName={data.studentFirstName}
-        contactEmail={data.contactEmail}
-      />
+      <div ref={statusRef} tabIndex={-1} className="focus:outline-none">
+        <ParentFormComplete
+          studentFirstName={data.studentFirstName}
+          contactEmail={data.contactEmail}
+        />
+      </div>
     );
   }
 
@@ -144,12 +150,14 @@ export function ParentForm({
         don&apos;t need an account, and it should take about five minutes.
       </p>
 
-      {err?.form && <Alert tone="error">{err.form}</Alert>}
-      {err && !err.form && (
-        <Alert tone="error">
-          Please fix the highlighted fields below, then submit again.
-        </Alert>
-      )}
+      <div ref={statusRef} tabIndex={-1} className="focus:outline-none">
+        {err?.form && <Alert tone="error">{err.form}</Alert>}
+        {err && !err.form && (
+          <Alert tone="error">
+            Please fix the highlighted fields below, then submit again.
+          </Alert>
+        )}
+      </div>
 
       <form action={action} onSubmit={handleSubmit} noValidate>
         <SectionHeading>About Launchpad</SectionHeading>
