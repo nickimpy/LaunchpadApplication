@@ -16,6 +16,7 @@ import {
 import { DOC_TYPES } from "@/utils/document-options";
 import type { ApplicantProfile } from "@/utils/applicant-profile";
 import { Alert, TextField, SubmitButton } from "@/components/forms";
+import { formatDate, formatDateTime } from "@/utils/dates";
 
 export function StudentInfoForm({ profile }: { profile: ApplicantProfile }) {
   const [state, action] = useActionState<AdminFormState, FormData>(
@@ -161,7 +162,7 @@ export function DocumentPanel({ profile }: { profile: ApplicantProfile }) {
                 <span className="block text-xs">
                   {DOC_TYPES.find((d) => d.value === doc.docType)?.label ?? doc.docType}
                   {" · "}
-                  {new Date(doc.createdAt).toLocaleDateString("en-US")}
+                  {formatDate(doc.createdAt)}
                 </span>
               </span>
               <DeleteDocumentButton
@@ -193,13 +194,27 @@ export function DocumentPanel({ profile }: { profile: ApplicantProfile }) {
         <label className="block font-bold" htmlFor="file">
           File
         </label>
+        <p id="file-hint" className="mt-1 text-xs">
+          PDF, Word, or an image, up to 15 MB.
+        </p>
+        {/* The `file:` variants style the browser's own picker button, so it
+            reads as a button without replacing the native input — which keeps
+            keyboard access and screen-reader labelling intact. */}
         <input
           id="file"
           name="file"
           type="file"
           required
+          aria-describedby="file-hint"
           accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.heic"
-          className="mb-6 mt-1 block w-full text-base"
+          className="mb-6 mt-1 block w-full cursor-pointer rounded-md border
+            border-grey-tint1 bg-white text-base text-grey
+            file:mr-3 file:cursor-pointer file:rounded-l-md file:border-0
+            file:border-r file:border-grey-tint1 file:bg-grey-tint4
+            file:px-3 file:py-3 file:text-base file:font-bold
+            file:text-teal-dark hover:file:bg-grey-tint3
+            focus-visible:outline-none focus-visible:ring-2
+            focus-visible:ring-teal-dark"
         />
         <SubmitButton pendingLabel="Uploading…">Upload document</SubmitButton>
       </form>
@@ -264,7 +279,7 @@ export function NotesPanel({ profile }: { profile: ApplicantProfile }) {
             <li key={note.id} className="rounded-md border border-grey-tint2 px-3 py-3">
               <p className="whitespace-pre-line">{note.body}</p>
               <p className="mt-1 text-xs text-grey-tint1">
-                {note.authorEmail} · {new Date(note.createdAt).toLocaleString("en-US")}
+                {note.authorEmail} · {formatDateTime(note.createdAt)}
               </p>
             </li>
           ))}

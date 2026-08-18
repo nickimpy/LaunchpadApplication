@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getApplicantProfile } from "@/utils/applicant-profile";
+import { formatDateTime } from "@/utils/dates";
 import { STEPS, STATUS_LABELS, type StepStatus } from "@/utils/steps";
 import {
   StudentInfoForm,
@@ -97,6 +98,34 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
             </span>
           );
         })}
+      </div>
+
+      {/* Staff work happens here — documents to upload, notes to leave, and a
+          record of who changed what — so it leads rather than sitting below
+          the application detail. */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card title="Documents">
+          <DocumentPanel profile={profile} />
+        </Card>
+
+        <Card title="Staff notes">
+          <NotesPanel profile={profile} />
+        </Card>
+
+        <Card title="Activity log">
+          {profile.audit.length === 0 ? (
+            <p className="text-xs">No staff changes recorded yet.</p>
+          ) : (
+            <ul className="space-y-3 text-xs">
+              {profile.audit.map((a) => (
+                <li key={a.id}>
+                  <span className="font-bold">{a.action}</span> ·{" "}
+                  {a.actorEmail ?? "unknown"} · {formatDateTime(a.createdAt)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -235,29 +264,6 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
             )}
           </Card>
 
-          <Card title="Documents">
-            <DocumentPanel profile={profile} />
-          </Card>
-
-          <Card title="Staff notes">
-            <NotesPanel profile={profile} />
-          </Card>
-
-          <Card title="Activity log">
-            {profile.audit.length === 0 ? (
-              <p className="text-xs">No staff changes recorded yet.</p>
-            ) : (
-              <ul className="space-y-3 text-xs">
-                {profile.audit.map((a) => (
-                  <li key={a.id}>
-                    <span className="font-bold">{a.action}</span> ·{" "}
-                    {a.actorEmail ?? "unknown"} ·{" "}
-                    {new Date(a.createdAt).toLocaleString("en-US")}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
         </div>
       </div>
     </>
