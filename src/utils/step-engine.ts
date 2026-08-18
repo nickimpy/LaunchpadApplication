@@ -68,6 +68,17 @@ export const getPortalData = cache(async (): Promise<PortalData | null> => {
 
   let { data: student } = await loadStudent();
   if (!student) {
+    // Never self-heal a staff account into an applicant: admins have no
+    // student row by design, and healing would silently file them into the
+    // pipeline as a fake application. They get sent to /admin instead.
+    const { data: admin } = await supabase
+      .from("admin_users")
+      .select("id")
+      .eq("id", user.id)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (admin) return null;
+
     await heal();
     ({ data: student } = await loadStudent());
   }

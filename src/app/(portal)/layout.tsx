@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { createClient } from "@/utils/supabase/server";
 import { getPortalData } from "@/utils/step-engine";
+import { isActiveAdmin, hasStudentRecord } from "@/utils/admin";
 import { StepNav } from "@/components/portal/step-nav";
 import { logout } from "./profile/actions";
 
@@ -10,6 +13,18 @@ import { logout } from "./profile/actions";
 export default async function PortalLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Staff who have no application of their own belong in the dashboard, not
+  // here. Checked BEFORE getPortalData so its self-heal never fabricates a
+  // student record for a staff account.
+  const supabase = createClient(await cookies());
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  if ((await isActiveAdmin(user.id)) && !(await hasStudentRecord(user.id))) {
+    redirect("/admin");
+  }
+
   const data = await getPortalData();
   if (!data) redirect("/login");
 

@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { isActiveAdmin } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import { getOrigin } from "@/utils/origin";
 import { emailSendErrorMessage } from "@/utils/auth-errors";
@@ -23,7 +24,7 @@ export async function login(
     return { error: "Enter your email and password.", values: { email } };
 
   const supabase = createClient(await cookies());
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     if (error.code === "email_not_confirmed")
@@ -34,7 +35,7 @@ export async function login(
     };
   }
 
-  redirect("/portal");
+  redirect((await isActiveAdmin(data.user.id)) ? "/admin" : "/portal");
 }
 
 export type MagicLinkState = {

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
+import { isActiveAdmin } from "@/utils/admin";
 
 export default async function AuthLayout({
   children,
@@ -12,8 +13,9 @@ export default async function AuthLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Logged-in students don't need the auth pages — send them to the portal.
-  if (user) redirect("/portal");
+  // Logged-in users don't need the auth pages. Staff go to the dashboard;
+  // everyone else to the student portal.
+  if (user) redirect((await isActiveAdmin(user.id)) ? "/admin" : "/portal");
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-grey-tint4 px-6 py-12">
