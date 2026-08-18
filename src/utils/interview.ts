@@ -17,6 +17,10 @@ export type InterviewData = {
   essays: { prompt: string; response: string }[];
   recorded: boolean;
   values: Record<string, string>;
+  /** Active staff, for the required Interviewer(s) picker. */
+  staff: { id: string; name: string }[];
+  /** Ids of staff already recorded on this interview. */
+  interviewerIds: string[];
 };
 
 /**
@@ -42,7 +46,7 @@ export async function getInterviewData(
     .maybeSingle();
   if (!application) return null;
 
-  const [{ data: interview }, { data: parentForm }, { data: essayRows }] =
+  const [{ data: interview }, { data: parentForm }, { data: essayRows }, { data: staffRows }] =
     await Promise.all([
       supabase
         .from("interviews")
@@ -58,6 +62,11 @@ export async function getInterviewData(
         .from("essay_responses")
         .select("response, essay_prompts ( prompt, sort_order )")
         .eq("application_id", applicationId),
+      supabase
+        .from("admin_users")
+        .select("id, email, first_name, last_name")
+        .eq("is_active", true)
+        .order("first_name"),
     ]);
 
   const student = application.students as unknown as {
@@ -107,6 +116,19 @@ export async function getInterviewData(
     .sort((a, b) => a.sort - b.sort)
     .map(({ prompt, response }) => ({ prompt, response }));
 
+  const staff = (staffRows ?? []).map((a) => ({
+    id: a.id as string,
+    name:
+      [a.first_name, a.last_name].filter(Boolean).join(" ") || (a.email as string),
+  }));
+
+  // Stored as a comma-separated list of admin ids, so the picker can round-trip
+  // and a future "interviews I ran" filter has something to match on.
+  const interviewerIds = String(interview?.interviewers ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((id) => staff.some((m) => m.id === id));
+
   return {
     applicationId,
     studentName: `${student?.first_name ?? ""} ${student?.last_name ?? ""}`.trim(),
@@ -119,5 +141,7 @@ export async function getInterviewData(
     essays,
     recorded: Boolean(interview),
     values,
+    staff,
+    interviewerIds,
   };
 }

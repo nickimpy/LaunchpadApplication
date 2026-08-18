@@ -7,6 +7,10 @@ export type StepStatus =
   | "in_progress"
   | "submitted"
   | "pending_verification"
+  // Staff looked at a C2L step and found it wrong or incomplete. Only staff can
+  // set it (see step_progress RLS); students can move OUT of it by re-reporting,
+  // which is the whole point.
+  | "needs_attention"
   | "complete";
 
 export type StepOwner = "student" | "parent" | "staff";
@@ -110,8 +114,17 @@ export const STATUS_LABELS: Record<StepStatus, string> = {
   not_started: "Not started",
   in_progress: "In progress",
   submitted: "Submitted",
-  pending_verification: "Pending verification",
+  pending_verification: "Pending staff review",
+  needs_attention: "Needs your attention",
   complete: "Complete",
+};
+
+/** Staff-facing wording for the same states, from the reviewer's side. */
+export const STAFF_STATUS_LABELS: Record<StepStatus, string> = {
+  ...STATUS_LABELS,
+  pending_verification: "Pending staff review",
+  needs_attention: "Reviewed — incomplete",
+  complete: "Reviewed — verified",
 };
 
 /** Statuses a student is allowed to set on a step (mirrors the RLS policy). */
@@ -127,6 +140,8 @@ export function studentAllowedStatuses(stepNumber: number): StepStatus[] {
       "complete",
     ];
   }
+  // Deliberately excludes "needs_attention": only staff flag a step as
+  // incomplete, mirroring step_progress_own_update's WITH CHECK list.
   return ["not_started", "in_progress", "submitted", "pending_verification"];
 }
 

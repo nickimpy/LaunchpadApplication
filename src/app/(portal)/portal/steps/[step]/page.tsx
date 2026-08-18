@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getPortalData } from "@/utils/step-engine";
 import { getStep1Data } from "@/utils/step1";
 import { getStep3Data } from "@/utils/step3";
-import { getC2LUrl } from "@/utils/c2l";
+import { getC2LUrl, getStepStaffNote } from "@/utils/c2l";
 import { C2L_COPY, isC2LStep } from "@/utils/c2l-options";
 import { getMyReleasedDecision } from "@/utils/decision";
 import { DECISION_LABELS } from "@/utils/decision-options";
@@ -46,7 +46,8 @@ const BADGE_STYLES: Record<StepStatus, string> = {
   not_started: "bg-grey-tint3 text-grey",
   in_progress: "bg-teal-tint3 text-teal-dark",
   submitted: "bg-teal-dark text-white",
-  pending_verification: "bg-orange-tint3 text-orange-dark",
+  pending_verification: "bg-teal-tint3 text-teal-dark",
+  needs_attention: "bg-orange-tint3 text-orange-dark",
   complete: "bg-green-tint3 text-green-dark",
 };
 
@@ -206,6 +207,7 @@ export default async function StepPage({ params }: { params: Params }) {
           status={step.status}
           url={await getC2LUrl(data.cycleId, C2L_COPY[step.number].urlKey)}
           contactEmail={data.contactEmail}
+          staffNote={await getStepStaffNote(data.applicationId, step.number)}
         />
       ) : step.number === 7 ? (
         <Step7Panel />
@@ -234,7 +236,7 @@ export default async function StepPage({ params }: { params: Params }) {
           </p>
           <p className="text-xs">
             {step.maxStudentStatus === "pending_verification"
-              ? "After you report this step, Launchpad staff verify it with C2LPHL — it will show “Pending verification” until they do."
+              ? "After you report this step, Launchpad staff check it against C2LPHL — it will show “Pending staff review” until they do."
               : "You'll be able to update your answers on this step even after you submit it."}
           </p>
         </div>

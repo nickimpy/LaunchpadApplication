@@ -7,12 +7,14 @@ import {
   RUBRIC_CRITERIA,
   SCORE_OPTIONS,
   PATHWAY_OPTIONS,
+  INTERVIEWERS_FIELD,
   scoreField,
   noteField,
   type InterviewState,
 } from "@/utils/interview-options";
 import {
   Alert,
+  CheckboxGroup,
   SelectField,
   TextField,
   Textarea,
@@ -40,21 +42,26 @@ export function InterviewForm({ data }: { data: InterviewData }) {
       <form action={action}>
         <section className="mb-6 rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
           <h2 className="mb-6 text-lg font-bold">The interview</h2>
-          <div className="grid gap-x-6 sm:grid-cols-2">
-            <TextField
-              label="Interview date"
-              name="interview_date"
-              type="date"
-              defaultValue={v.interview_date}
+          <TextField
+            label="Interview date"
+            name="interview_date"
+            type="date"
+            defaultValue={v.interview_date}
+          />
+          {data.staff.length === 0 ? (
+            <Alert tone="error">
+              No active staff accounts exist yet, so there&apos;s nobody to
+              credit as an interviewer. Add staff under Staff first.
+            </Alert>
+          ) : (
+            <CheckboxGroup
+              legend="Interviewer(s)"
+              name={INTERVIEWERS_FIELD}
+              options={data.staff.map((m) => ({ value: m.id, label: m.name }))}
+              defaultValues={data.interviewerIds}
+              hint="Everyone who was in the room. At least one is required."
             />
-            <TextField
-              label="Interviewer(s)"
-              name="interviewers"
-              defaultValue={v.interviewers}
-              optional
-              hint="Who was in the room."
-            />
-          </div>
+          )}
           <SelectField
             label="Pathway preference"
             name="pathway_preference"
@@ -83,8 +90,9 @@ export function InterviewForm({ data }: { data: InterviewData }) {
         <section className="mb-6 rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
           <h2 className="mb-1 text-lg font-bold">Rubric</h2>
           <p className="mb-6 text-xs">
-            Score each criterion 0–3. Leave one blank if it wasn&apos;t
-            assessed — blank scores are cleared from the record.
+            Score every criterion 0–3. All seven are required — an interview
+            record is only useful if the whole rubric is filled in. Notes are
+            optional.
           </p>
           {RUBRIC_CRITERIA.map((c) => (
             <div
@@ -96,9 +104,8 @@ export function InterviewForm({ data }: { data: InterviewData }) {
                 name={scoreField(c.value)}
                 options={SCORE_OPTIONS}
                 defaultValue={v[scoreField(c.value)] ?? ""}
-                optional
                 hint={c.hint}
-                placeholder="Not scored"
+                placeholder="Choose a score…"
               />
               <Textarea
                 label={`Notes on ${c.label.toLowerCase()}`}

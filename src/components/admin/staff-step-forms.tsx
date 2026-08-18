@@ -2,65 +2,117 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 import {
-  verifyC2LStep,
+  reviewC2LStep,
   recordDecision,
   releaseDecision,
   type VerifyState,
+  type C2LOutcome,
 } from "@/app/(admin)/admin/applicants/[id]/staff-actions";
 import { DECISION_OPTIONS, DECISION_LABELS, type DecisionState } from "@/utils/decision-options";
 import { Alert, SelectField, Textarea, SubmitButton } from "@/components/forms";
-import { STATUS_LABELS, type StepStatus } from "@/utils/steps";
+import { STAFF_STATUS_LABELS, type StepStatus } from "@/utils/steps";
 import { formatDateTime } from "@/utils/dates";
 
-/** One C2L step's verify / un-verify control. */
+/**
+ * One C2L step's review control: three outcomes, plus the note that tells the
+ * student what to fix when something is missing.
+ */
 export function C2LVerifyRow({
   applicationId,
   stepNumber,
   stepName,
   status,
+  staffNote,
 }: {
   applicationId: string;
   stepNumber: number;
   stepName: string;
   status: StepStatus;
+  staffNote: string | null;
 }) {
-  const verified = status === "complete";
+  const [note, setNote] = useState(staffNote ?? "");
+  const [pendingOutcome, setPendingOutcome] = useState<C2LOutcome | null>(null);
   const [state, action] = useActionState<VerifyState, FormData>(
-    async () => verifyC2LStep(applicationId, stepNumber, !verified),
+    async () =>
+      pendingOutcome
+        ? reviewC2LStep(applicationId, stepNumber, pendingOutcome, note)
+        : {},
     {},
   );
 
+  const reported = status !== "not_started";
+  const mark = (outcome: C2LOutcome, label: string, tone: string) => (
+    <button
+      type="submit"
+      onClick={() => setPendingOutcome(outcome)}
+      disabled={!reported}
+      className={`rounded-md border border-grey-tint1 bg-white px-3 py-1 text-xs font-bold
+        hover:bg-grey-tint4 focus:outline-none focus-visible:ring-2
+        focus-visible:ring-teal-dark disabled:opacity-50 ${tone}`}
+    >
+      {label}
+    </button>
+  );
+
   return (
-    <div className="border-t border-grey-tint3 py-3 first:border-0 first:pt-0">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span>
-          <span className="font-bold">
-            Step {stepNumber}: {stepName}
-          </span>
-          <span className="block text-xs">{STATUS_LABELS[status]}</span>
-        </span>
-        <form action={action}>
-          <button
-            type="submit"
-            disabled={status === "not_started"}
-            className={`rounded-md border border-grey-tint1 bg-white px-3 py-1 text-xs font-bold
-              hover:bg-grey-tint4 focus:outline-none focus-visible:ring-2
-              focus-visible:ring-teal-dark disabled:opacity-50
-              ${verified ? "text-orange-dark" : "text-teal-dark"}`}
-          >
-            {verified ? "Un-verify" : "Verify with C2LPHL"}
-          </button>
-        </form>
-      </div>
-      {status === "not_started" && (
+    <form
+      action={action}
+      className="border-t border-grey-tint3 py-3 first:border-0 first:pt-0"
+    >
+      <p className="font-bold">
+        {/* Status conveyed by text as well as colour, per the WCAG goal. */}
+        {status === "complete" && <span aria-hidden="true">✓ </span>}
+        {status === "needs_attention" && <span aria-hidden="true">✗ </span>}
+        Step {stepNumber}: {stepName}
+      </p>
+      <p
+        className={`text-xs ${
+          status === "complete"
+            ? "text-green-dark"
+            : status === "needs_attention"
+              ? "text-orange-dark"
+              : ""
+        }`}
+      >
+        {STAFF_STATUS_LABELS[status]}
+      </p>
+
+      {!reported && (
         <p className="mt-1 text-xs text-grey-tint1">
           The student hasn&apos;t reported this yet.
         </p>
       )}
+
+      {reported && (
+        <>
+          <label className="mt-3 block text-xs font-bold" htmlFor={`note-${stepNumber}`}>
+            What&apos;s missing? (required to flag as incomplete)
+          </label>
+          <textarea
+            id={`note-${stepNumber}`}
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. Transcript uploaded but the attendance record is missing."
+            className="mt-1 w-full rounded-md border border-grey-tint1 bg-white px-3 py-1 text-xs"
+          />
+          <p className="mt-1 text-xs text-grey-tint1">
+            The student sees this on their step, so write it to them.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            {mark("verified", "Verified", "text-green-dark")}
+            {mark("incomplete", "Incomplete", "text-orange-dark")}
+            {status !== "pending_verification" &&
+              mark("pending", "Back to not reviewed", "text-teal-dark")}
+          </div>
+        </>
+      )}
+
       {state.error && <p className="mt-1 text-xs text-orange-dark">{state.error}</p>}
       {state.success && <p className="mt-1 text-xs text-green-dark">{state.success}</p>}
-    </div>
+    </form>
   );
 }
 

@@ -13,61 +13,93 @@ const FAILED = "That didn't save. Please try again.";
 
 export type VerifyState = { error?: string; success?: string };
 
+/** The three states a reviewer can leave a C2L step in. */
+export type C2LOutcome = "pending" | "verified" | "incomplete";
+
+const OUTCOME_STATUS = {
+  pending: "pending_verification",
+  verified: "complete",
+  incomplete: "needs_attention",
+} as const;
+
 /**
- * Staff verification of a C2L step (5 or 6). The student self-reports, which
- * puts the step at `pending_verification`; only staff can move it to
- * `complete`, informed by C2L's own reports (PRD).
+ * Records the result of staff reviewing a C2L step (5 or 6).
+ *
+ * Three outcomes, because "I haven't looked yet" and "I looked and it was
+ * wrong" are different facts and the student needs to be able to tell them
+ * apart:
+ *   pending    — self-reported, not yet reviewed
+ *   verified   — checked against C2LPHL and correct
+ *   incomplete — checked and something is missing; `staff_note` says what,
+ *                and the student can fix it and re-report
  *
  * Written directly rather than through `setStepStatus()`, which caps students
- * below `complete` for exactly these steps.
+ * below `complete` for exactly these steps and never allows `needs_attention`.
  */
-export async function verifyC2LStep(
+export async function reviewC2LStep(
   applicationId: string,
   stepNumber: number,
-  verified: boolean,
+  outcome: C2LOutcome,
+  staffNote: string,
 ): Promise<VerifyState> {
   const admin = await getAdminUser();
   if (!admin) return { error: DENIED };
   if (!isC2LStep(stepNumber)) return { error: FAILED };
+  if (!(outcome in OUTCOME_STATUS)) return { error: FAILED };
+
+  // Flagging a problem without saying what it is leaves the student stuck.
+  if (outcome === "incomplete" && !staffNote.trim()) {
+    return { error: "Say what's missing, so the student knows what to fix." };
+  }
 
   const supabase = createClient(await cookies());
   const { data: before } = await supabase
     .from("step_progress")
-    .select("status, submitted_at")
+    .select("status, submitted_at, staff_note")
     .eq("application_id", applicationId)
     .eq("step_number", stepNumber)
     .maybeSingle();
 
+  const status = OUTCOME_STATUS[outcome];
   const now = new Date().toISOString();
   const { error } = await supabase
     .from("step_progress")
     .update({
-      // Un-verifying returns the step to the student's self-report rather than
-      // to "not started" — they did report it, and that shouldn't be erased.
-      status: verified ? "complete" : "pending_verification",
+      status,
+      // Preserve when the student reported it; that isn't ours to reset.
       submitted_at: before?.submitted_at ?? now,
-      completed_at: verified ? now : null,
+      completed_at: status === "complete" ? now : null,
+      // The note only belongs to the "incomplete" state; clear it otherwise so
+      // a stale message can't linger after the student fixes things.
+      staff_note: outcome === "incomplete" ? staffNote.trim() : null,
       updated_by: admin.id,
     })
     .eq("application_id", applicationId)
     .eq("step_number", stepNumber);
-  if (error) return { error: FAILED };
+  if (error) {
+    // The 'needs_attention' value and staff_note column arrive in migration
+    // 0008; say so plainly rather than showing a generic failure.
+    return {
+      error: `${FAILED} (If this keeps happening, migration 0008 may not be applied yet: ${error.message})`,
+    };
+  }
 
   await logAdminAction({
     actor: admin,
-    action: verified ? "c2l.verify" : "c2l.unverify",
+    action: `c2l.review.${outcome}`,
     entityType: "application",
     entityId: applicationId,
     before,
-    after: { step_number: stepNumber, status: verified ? "complete" : "pending_verification" },
+    after: { step_number: stepNumber, status, staff_note: staffNote.trim() || null },
   });
 
   revalidatePath(`/admin/applicants/${applicationId}`);
-  return {
-    success: verified
-      ? `Step ${stepNumber} verified.`
-      : `Step ${stepNumber} returned to pending verification.`,
+  const messages: Record<C2LOutcome, string> = {
+    pending: `Step ${stepNumber} moved back to pending staff review.`,
+    verified: `Step ${stepNumber} verified.`,
+    incomplete: `Step ${stepNumber} flagged as incomplete — the student can see your note and re-report.`,
   };
+  return { success: messages[outcome] };
 }
 
 /**

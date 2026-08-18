@@ -75,6 +75,9 @@ export const CRITERION_LABELS: Record<string, string> = Object.fromEntries(
   RUBRIC_CRITERIA.map((c) => [c.value, c.label]),
 );
 
+/** Field name carrying the chosen interviewers (a multi-select). */
+export const INTERVIEWERS_FIELD = "interviewer_ids";
+
 export type InterviewState = {
   error?: string;
   success?: string;

@@ -9,6 +9,7 @@ import {
   RUBRIC_CRITERIA,
   SCORE_VALUES,
   PATHWAY_VALUES,
+  INTERVIEWERS_FIELD,
   scoreField,
   noteField,
   type InterviewState,
@@ -33,9 +34,12 @@ export async function saveInterview(
   const admin = await getAdminUser();
   if (!admin) return { error: DENIED };
 
+  // Interviewers are chosen from the staff list, so this arrives as ids.
+  const interviewerIds = formData.getAll(INTERVIEWERS_FIELD).map(String).filter(Boolean);
+
   const values: Record<string, string> = {
     interview_date: field(formData, "interview_date"),
-    interviewers: field(formData, "interviewers"),
+    interviewers: interviewerIds.join(","),
     pathway_preference: field(formData, "pathway_preference"),
     schedule_conflicts: field(formData, "schedule_conflicts"),
     college_plans: field(formData, "college_plans"),
@@ -47,10 +51,13 @@ export async function saveInterview(
     values[noteField(c.value)] = field(formData, noteField(c.value));
   }
 
-  // Light validation: an interview is a staff record, so partial notes are
-  // legitimate. Only the things that must be coherent are enforced.
+  // A recorded interview is a complete rubric: every criterion scored, and the
+  // interviewers named. Notes stay optional.
   if (!values.interview_date) {
     return { error: "Enter the interview date.", values };
+  }
+  if (interviewerIds.length === 0) {
+    return { error: "Choose at least one interviewer.", values };
   }
   if (values.pathway_preference && !PATHWAY_VALUES.includes(values.pathway_preference)) {
     return { error: "Choose a valid pathway preference.", values };
@@ -58,11 +65,16 @@ export async function saveInterview(
   if (values.final_rating && !SCORE_VALUES.includes(values.final_rating)) {
     return { error: "Choose a valid final rating.", values };
   }
-  for (const c of RUBRIC_CRITERIA) {
-    const score = values[scoreField(c.value)];
-    if (score && !SCORE_VALUES.includes(score)) {
-      return { error: `Choose a valid score for ${c.label}.`, values };
-    }
+  const unscored = RUBRIC_CRITERIA.filter(
+    (c) => !SCORE_VALUES.includes(values[scoreField(c.value)]),
+  );
+  if (unscored.length) {
+    return {
+      error: `Score every criterion before saving. Still missing: ${unscored
+        .map((c) => c.label)
+        .join(", ")}.`,
+      values,
+    };
   }
 
   const supabase = createClient(await cookies());
@@ -92,31 +104,17 @@ export async function saveInterview(
     .single();
   if (upsertErr || !interview) return { error: FAILED, values };
 
-  // Per-criterion scores: upsert the ones that were scored, and clear any that
-  // were blanked out, so the stored rubric always matches the form.
-  const scored = RUBRIC_CRITERIA.filter((c) => values[scoreField(c.value)]);
-  if (scored.length) {
-    const { error } = await supabase.from("interview_scores").upsert(
-      scored.map((c) => ({
-        interview_id: interview.id,
-        criterion: c.value,
-        score: Number(values[scoreField(c.value)]),
-        note: values[noteField(c.value)] || null,
-      })),
-      { onConflict: "interview_id,criterion" },
-    );
-    if (error) return { error: FAILED, values };
-  }
-  const cleared = RUBRIC_CRITERIA.filter((c) => !values[scoreField(c.value)]).map(
-    (c) => c.value,
+  // All 7 are validated above, so this always writes a full rubric.
+  const { error: scoreErr } = await supabase.from("interview_scores").upsert(
+    RUBRIC_CRITERIA.map((c) => ({
+      interview_id: interview.id,
+      criterion: c.value,
+      score: Number(values[scoreField(c.value)]),
+      note: values[noteField(c.value)] || null,
+    })),
+    { onConflict: "interview_id,criterion" },
   );
-  if (cleared.length) {
-    await supabase
-      .from("interview_scores")
-      .delete()
-      .eq("interview_id", interview.id)
-      .in("criterion", cleared);
-  }
+  if (scoreErr) return { error: FAILED, values };
 
   // Step 4 is staff-owned: setStepStatus() rejects it, so write directly.
   const now = new Date().toISOString();

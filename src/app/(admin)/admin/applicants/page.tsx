@@ -17,7 +17,8 @@ const STATUS_DOT: Record<StepStatus, string> = {
   not_started: "bg-grey-tint2",
   in_progress: "bg-teal-tint2",
   submitted: "bg-teal-dark",
-  pending_verification: "bg-orange",
+  pending_verification: "bg-teal-tint2",
+  needs_attention: "bg-orange",
   complete: "bg-green",
 };
 

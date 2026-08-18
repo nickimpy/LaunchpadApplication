@@ -42,6 +42,8 @@ export type ApplicantProfile = {
   schoolName: string;
   isPartnerSchool: boolean;
   statuses: Record<number, StepStatus>;
+  /** Staff "what's missing" note per step (Steps 5-6 today). */
+  staffNotes: Record<number, string | null>;
   guardians: {
     id: string;
     position: number;
@@ -87,7 +89,8 @@ export async function getApplicantProfile(
     .from("applications")
     .select(
       `*, students ( first_name, last_name, preferred_name, email, phone, date_of_birth, notification_preference ),
-       schools ( name, is_partner ), step_progress ( step_number, status )`,
+       schools ( name, is_partner ),
+       step_progress ( step_number, status, staff_note )`,
     )
     .eq("id", applicationId)
     .maybeSingle();
@@ -152,11 +155,14 @@ export async function getApplicantProfile(
   ]);
 
   const statuses: Record<number, StepStatus> = {};
+  const staffNotes: Record<number, string | null> = {};
   for (const sp of (application.step_progress ?? []) as {
     step_number: number;
     status: StepStatus;
+    staff_note?: string | null;
   }[]) {
     statuses[sp.step_number] = sp.status;
+    staffNotes[sp.step_number] = sp.staff_note ?? null;
   }
 
   const student = application.students as {
@@ -186,6 +192,25 @@ export async function getApplicantProfile(
     .sort((a, b) => a.sort - b.sort)
     .map(({ prompt, response }) => ({ prompt, response }));
 
+  // Interviewers are stored as comma-separated admin ids (see the interview
+  // form's staff picker), so resolve them to names for display.
+  const interviewerIds = String(interview?.interviewers ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  let interviewerNames: string | null = null;
+  if (interviewerIds.length) {
+    const { data: staff } = await supabase
+      .from("admin_users")
+      .select("id, email, first_name, last_name")
+      .in("id", interviewerIds);
+    const names = (staff ?? []).map(
+      (a) => [a.first_name, a.last_name].filter(Boolean).join(" ") || (a.email as string),
+    );
+    // Fall back to the raw value for legacy free-text entries.
+    interviewerNames = names.length ? names.join(", ") : (interview?.interviewers as string) ?? null;
+  }
+
   const origin = await getOrigin();
 
   return {
@@ -204,6 +229,7 @@ export async function getApplicantProfile(
     schoolName: school?.name ?? (application.school_other as string) ?? "",
     isPartnerSchool: Boolean(school?.is_partner),
     statuses,
+    staffNotes,
     guardians: (guardians ?? []).map((g) => ({
       id: g.id as string,
       position: g.position as number,
@@ -245,7 +271,8 @@ export async function getApplicantProfile(
       recorded: Boolean(interview),
       interviewDate: (interview?.interview_date as string) ?? null,
       finalRating: (interview?.final_rating as number) ?? null,
-      interviewers: (interview?.interviewers as string) ?? null,
+      // `interviewers` stores admin ids; show names here.
+      interviewers: interviewerNames,
     },
     decision: {
       status: (decision?.status as string) ?? null,

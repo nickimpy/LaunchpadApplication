@@ -9,6 +9,15 @@ Priority,Area,Where it appears,Type,Current text,Your new text,Notes
 1,Step 3,Video option — NOT BUILT,Decision needed,Applicants may email a video instead of writing,,"Carried in the PRD from the paper form. Tell me whether beta should offer it and to which address, and I'll build it."
 1,Step 3,essay_prompts row 1 (sort_order 1),Essay prompt,Why do you want to join Launchpad?,,"Beta placeholder. Replace with the scaffolded set — one row per sub-question, in order. Pure data: no code change or deploy."
 1,Step 3,essay_prompts — add rows below,Essay prompt,"(add as many as you need, numbered in order)",,PRD: decompose the two long 300–500 word prompts into smaller directed sub-questions.
+1,Step 4 rubric,interview-options.ts — SCORE_OPTIONS,0-3 scale wording,0 — Unaligned | 1 — Minimally aligned | 2 — Mostly aligned | 3 — Completely aligned,,"From the PRD. Confirm this matches the final rubric, including whether each level has a longer descriptor interviewers should see."
+1,Step 4 rubric,Rubric anchors per level,Decision needed,(not built),,"Does each criterion have level-by-level descriptors (what a 2 looks like for Passion, etc.)? If so, send them and I'll show the right descriptor as interviewers pick a score. Currently only the criterion has a description."
+1,Step 4 rubric,interview-options.ts — RUBRIC_CRITERIA,Rubric criterion wording,Passion — For technology or entrepreneurship as a career pathway.,,"PLACEHOLDER from the PRD summary. Replace with the final wording from 'Launchpad Interview Process & Applicant Rubric 2026'. One row per criterion below; the label is what interviewers see, the description sits under it."
+1,Step 4 rubric,interview-options.ts — RUBRIC_CRITERIA,Rubric criterion wording,Purpose — Post-secondary plan aligned with the program model.,,Same — final wording needed.
+1,Step 4 rubric,interview-options.ts — RUBRIC_CRITERIA,Rubric criterion wording,Persistence — Has set a goal and persisted through challenges.,,Same — final wording needed.
+1,Step 4 rubric,interview-options.ts — RUBRIC_CRITERIA,Rubric criterion wording,"Collaboration — Group work, and valuing other people's perspectives.",,Same — final wording needed.
+1,Step 4 rubric,interview-options.ts — RUBRIC_CRITERIA,Rubric criterion wording,"Prior knowledge — Exposure to AI, tech, or entrepreneurship.",,Same — final wording needed.
+1,Step 4 rubric,interview-options.ts — RUBRIC_CRITERIA,Rubric criterion wording,External support — Support network. Top scores require a submitted parent/guardian form.,,Same — final wording needed. The form shows parent-form status next to this criterion because of the rule in the description.
+1,Step 4 rubric,interview-options.ts — RUBRIC_CRITERIA,Rubric criterion wording,"Communication — Written and verbal, including the short answers.",,Same — final wording needed. The form shows the student's Step 3 answers inline for this one.
 1,Steps 5 & 6,cycle_settings: c2l_application_url,Setting (URL),(empty),,C2LPHL application link. The button stays hidden until this is filled in.
 1,Steps 5 & 6,cycle_settings: c2l_documents_url,Setting (URL),(empty),,C2LPHL document-upload link. Same — hidden until filled.
 2,Step 1 form,step1-form.tsx,Field label,Legal first name,,
@@ -81,6 +90,7 @@ Priority,Area,Where it appears,Type,Current text,Your new text,Notes
 2,Step 2 — Parent / Guardian Form,steps.ts (step 2 name),Step name,Parent / Guardian Form,,"Sidebar, step heading, admin table."
 2,Step 3 — Short Answer Questions,steps.ts (step 3 description),Body copy,A few short written questions so we can get to know you. You can save your answers and come back anytime.,,The explainer paragraph at the top of the step page.
 2,Step 3 — Short Answer Questions,steps.ts (step 3 name),Step name,Short Answer Questions,,"Sidebar, step heading, admin table."
+2,Step 4 rubric,interview-options.ts — PATHWAY_OPTIONS,Answer options,Entrepreneurial leadership only | Leaning entrepreneurial leadership | Open to either | Leaning tech / coding | Tech / coding only,,The 5-point pathway preference recorded at interview.
 2,Step 4 — Interview,steps.ts (step 4 description),Body copy,An interview at your school or at Launchpad. Launchpad staff record the outcome here when it's done.,,The explainer paragraph at the top of the step page.
 2,Step 4 — Interview,steps.ts (step 4 name),Step name,Interview,,"Sidebar, step heading, admin table."
 2,Step 5 instructions,c2l-options.ts,Button label,Open the C2LPHL application,,
@@ -97,8 +107,11 @@ Priority,Area,Where it appears,Type,Current text,Your new text,Notes
 2,Step 6 instructions,c2l-options.ts,Instruction 3,"C2LPHL sets these deadlines, and they often land late in the cycle. We'll let you know when we hear.",,
 2,Step 6 — C2LPHL Required Documents,steps.ts (step 6 description),Body copy,"Upload your required documents in the C2LPHL system, then report it here. Launchpad staff verify it.",,The explainer paragraph at the top of the step page.
 2,Step 6 — C2LPHL Required Documents,steps.ts (step 6 name),Step name,C2LPHL Required Documents,,"Sidebar, step heading, admin table."
+2,Step 7,decision.ts / step page,Body copy,"Your admissions decision — released {date}. If you have questions about what this means, please get in touch with Launchpad staff.",,What the student sees on Step 7 once a decision is released. Worth wording carefully — this is how some applicants learn they were denied.
 2,Step 7 — Admissions Decision,steps.ts (step 7 description),Body copy,Launchpad staff review your completed application and make a decision. You'll get an email when your decision is ready to view here.,,The explainer paragraph at the top of the step page.
 2,Step 7 — Admissions Decision,steps.ts (step 7 name),Step name,Admissions Decision,,"Sidebar, step heading, admin table."
+2,Steps 5 & 6,c2l-report-form.tsx,Body copy,Launchpad staff checked this — something's missing,,"Heading a student sees when their C2L submission was reviewed and found incomplete, above your note explaining what to fix."
+2,Steps 5 & 6,steps.ts — STAFF_STATUS_LABELS,Status wording,Pending staff review | Reviewed — verified | Reviewed — incomplete,,Staff-facing labels for C2L review. The student sees 'Pending staff review' and 'Needs your attention' for the same states — change either if you'd word them differently.
 3,Error messages,validation.ts,Error message,Enter your email address.,,
 3,Error messages,validation.ts,Error message,"Enter a valid email address, like you@example.com.",,
 3,Error messages,validation.ts,Error message,Enter a password.,,

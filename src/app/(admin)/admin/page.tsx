@@ -14,6 +14,7 @@ const EMPTY: Counts = {
   in_progress: 0,
   submitted: 0,
   pending_verification: 0,
+  needs_attention: 0,
   complete: 0,
 };
 

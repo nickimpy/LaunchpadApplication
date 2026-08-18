@@ -25,7 +25,8 @@ const BADGE: Record<StepStatus, string> = {
   not_started: "bg-grey-tint3 text-grey",
   in_progress: "bg-teal-tint3 text-teal-dark",
   submitted: "bg-teal-dark text-white",
-  pending_verification: "bg-orange-tint3 text-orange-dark",
+  pending_verification: "bg-teal-tint3 text-teal-dark",
+  needs_attention: "bg-orange-tint3 text-orange-dark",
   complete: "bg-green-tint3 text-green-dark",
 };
 
@@ -157,12 +158,14 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
             stepNumber={5}
             stepName="C2LPHL Application"
             status={profile.statuses[5] ?? "not_started"}
+            staffNote={profile.staffNotes[5] ?? null}
           />
           <C2LVerifyRow
             applicationId={profile.applicationId}
             stepNumber={6}
             stepName="C2LPHL Required Documents"
             status={profile.statuses[6] ?? "not_started"}
+            staffNote={profile.staffNotes[6] ?? null}
           />
         </Card>
 
