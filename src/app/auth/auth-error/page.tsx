@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { AuthErrorDetail } from "./error-detail";
 
 export const metadata: Metadata = { title: "Link problem — Launchpad" };
 
@@ -17,11 +18,7 @@ export default function AuthErrorPage() {
         />
       </Link>
       <main className="mt-9 w-full max-w-md rounded-lg bg-white p-6 shadow-sm">
-        <h1 className="mb-3 text-xl font-bold">This link didn&apos;t work</h1>
-        <p className="mb-6">
-          It may have expired or already been used. Request a fresh one and try
-          again.
-        </p>
+        <AuthErrorDetail />
         <ul className="flex flex-col gap-3">
           <li>
             <Link
@@ -29,6 +26,14 @@ export default function AuthErrorPage() {
               className="font-bold text-teal-dark underline"
             >
               Log in
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/verify-email"
+              className="font-bold text-teal-dark underline"
+            >
+              Resend the verification email
             </Link>
           </li>
           <li>

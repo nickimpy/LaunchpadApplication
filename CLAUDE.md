@@ -129,6 +129,13 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Deferred to Phase 8 (as scoped in BUILD_PLAN):** Track A/B **auto**-assignment from the partner-school list (the inline override exists and is respected), C2L verification toggles for Steps 5/6, and bulk counselor sign-off — that last one is really a bulk version of the Phase 8 verification toggle, which is why it isn't here.
 
+**Mail scanners consume verification links (found in QA 2026-08-18) — expect this to affect real applicants:**
+
+- Signing up `nicholasimparato@gmail.com` produced `email_confirmed_at` **8 seconds after** `created_at`, long before a human could have clicked. Gmail (and most providers/security tools) prefetch links in email to scan them, which spends Supabase's ONE-TIME token. The address is genuinely confirmed; it's the applicant's own click that then fails with `otp_expired` → `/auth/auth-error`.
+- **Most Launchpad applicants use Gmail, so most of them will see this.** The account works — they just have to log in — but a scary "This link didn't work" page will read as "I'm locked out" and generate support email.
+- **Mitigated now:** `/auth/auth-error` reads the failure code from the URL hash (client-side; the hash never reaches the server, hence `error-detail.tsx` and `useSyncExternalStore`) and, for `otp_expired`/`access_denied`, leads with "Your email may already be confirmed — try logging in first," plus a resend-verification link.
+- **Real fix belongs in Phase 9,** once custom SMTP + editable templates exist: point the template at `{{ .SiteURL }}/auth/confirm?token_hash=...` and make that page an **interstitial with a button** that performs the verification on click. Scanners follow links but don't press buttons, so the token survives until the human arrives. (`/auth/confirm` already exists for the token_hash flow — it just needs the interstitial instead of verifying on GET.)
+
 **Test accounts (decided 2026-08-17, keep these roles separate):**
 
 - **`nick@launchpadphilly.org` = ADMIN ONLY.** Its student record was deleted on 2026-08-17 so staff and applicant roles never mix again. Logging in lands on `/admin`; `/portal` redirects back to `/admin` (no student record, and `getPortalData` won't self-heal one for an admin).
