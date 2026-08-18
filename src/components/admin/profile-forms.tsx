@@ -12,8 +12,8 @@ import {
 import {
   uploadDocument,
   deleteDocument,
-  DOC_TYPES,
 } from "@/app/(admin)/admin/applicants/[id]/document-actions";
+import { DOC_TYPES } from "@/utils/document-options";
 import type { ApplicantProfile } from "@/utils/applicant-profile";
 import { Alert, TextField, SubmitButton } from "@/components/forms";
 

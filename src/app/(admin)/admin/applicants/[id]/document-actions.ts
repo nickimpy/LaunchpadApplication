@@ -7,16 +7,9 @@ import { createClient } from "@/utils/supabase/server";
 import { getAdminUser, logAdminAction } from "@/utils/admin";
 import { field } from "@/utils/validation";
 import type { AdminFormState } from "./actions";
+import { DOC_TYPES } from "@/utils/document-options";
 
 const DENIED = "You don't have permission to do that.";
-
-/** Matches the documents.doc_type check constraint. */
-export const DOC_TYPES = [
-  { value: "transcript", label: "Transcript" },
-  { value: "attendance", label: "Attendance record" },
-  { value: "iep_504", label: "IEP / 504 plan" },
-  { value: "other", label: "Other" },
-] as const;
 
 // ~200 transcripts a cycle (PRD), so generous per-file but not unbounded.
 const MAX_BYTES = 15 * 1024 * 1024;

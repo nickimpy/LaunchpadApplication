@@ -129,6 +129,14 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Deferred to Phase 8 (as scoped in BUILD_PLAN):** Track A/B **auto**-assignment from the partner-school list (the inline override exists and is respected), C2L verification toggles for Steps 5/6, and bulk counselor sign-off — that last one is really a bulk version of the Phase 8 verification toggle, which is why it isn't here.
 
+**A `"use server"` file may ONLY export async functions (crashed the applicant profile, 2026-08-18):**
+
+- `/admin/applicants/[id]` returned a blank error page in production. Vercel's runtime log gave `TypeError: l.map is not a function` — `vercel logs launchpad-application.vercel.app --json` is how to get these; the browser only shows "This page couldn't load".
+- **Cause:** `DOC_TYPES` (a plain array) was exported from `document-actions.ts`, a `"use server"` module. Anything other than an async function exported from one becomes a **server-action reference** on the client, so `DOC_TYPES.map(...)` blew up. Moved to `src/utils/document-options.ts`.
+- **`tsc`, lint, AND `npm run build` all passed** — this only fails when the page actually renders, which is exactly why the admin area (all of it behind a login) shipped broken. Treat "build is green" as saying nothing about admin pages.
+- `step1-options.ts` already documents this rule in a comment; `c2l-options.ts`, `parent-options.ts`, `step3-options.ts`, and now `document-options.ts` exist for the same reason. **Constants shared between an action and a component always belong in their own module.**
+- To audit: `for f in $(grep -rl '"use server"' src); do grep -nE '^export (const|let|var|class)' "$f"; done` (step1-options.ts is a false positive — it only mentions the directive in a comment).
+
 **Dropdowns blank out after a save — React 19 form reset, part two (found in QA 2026-08-18):**
 
 - **What happens:** React 19 resets a form once its action completes. Text inputs survive because React keeps their default in the `value` ATTRIBUTE, which reset honours — and the action echoes the submitted values back, so the restored default IS what the user typed. **A `<select>` has no such attribute: its reset baseline is fixed at mount, so an updated `defaultValue` is ignored and the field silently blanks.**
