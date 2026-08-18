@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { NOTIFICATION_PREFERENCES } from "@/utils/validation";
 
@@ -111,6 +111,27 @@ export function SelectField({
 }) {
   const errorId = error ? `${name}-error` : undefined;
   const hintId = hint ? `${name}-hint` : undefined;
+
+  // React 19 resets the form after a server action completes, and a <select>
+  // can't be restored the way a text input can: React keeps a text field's
+  // default in the `value` ATTRIBUTE (which reset honours), but a select's
+  // reset baseline is fixed at mount, so an updated `defaultValue` is ignored
+  // and the field silently blanks — then the next save writes that blank over
+  // the student's real answer. So the selection is tracked in state and
+  // re-asserted onto the DOM after each commit, which is the only moment that
+  // runs after React's reset.
+  const ref = useRef<HTMLSelectElement | null>(null);
+  const [value, setValue] = useState(defaultValue ?? "");
+  const [seed, setSeed] = useState(defaultValue ?? "");
+  if (seed !== (defaultValue ?? "")) {
+    // Fresh data arrived from the server — adopt it.
+    setSeed(defaultValue ?? "");
+    setValue(defaultValue ?? "");
+  }
+  useEffect(() => {
+    if (ref.current && ref.current.value !== value) ref.current.value = value;
+  });
+
   return (
     <div className="mb-6">
       <label htmlFor={name} className="block font-bold">
@@ -127,6 +148,7 @@ export function SelectField({
       <select
         id={name}
         name={name}
+        ref={ref}
         defaultValue={defaultValue ?? ""}
         autoComplete={autoComplete}
         required={!optional}
@@ -134,7 +156,10 @@ export function SelectField({
         aria-describedby={
           [errorId, hintId].filter(Boolean).join(" ") || undefined
         }
-        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        onChange={(e) => {
+          setValue(e.target.value);
+          onChange?.(e.target.value);
+        }}
         className={`${inputBase} ${error ? "border-orange-dark" : "border-grey-tint1"}`}
       >
         <option value="" disabled>

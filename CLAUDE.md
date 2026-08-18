@@ -129,6 +129,15 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Deferred to Phase 8 (as scoped in BUILD_PLAN):** Track A/B **auto**-assignment from the partner-school list (the inline override exists and is respected), C2L verification toggles for Steps 5/6, and bulk counselor sign-off — that last one is really a bulk version of the Phase 8 verification toggle, which is why it isn't here.
 
+**Dropdowns blank out after a save — React 19 form reset, part two (found in QA 2026-08-18):**
+
+- **What happens:** React 19 resets a form once its action completes. Text inputs survive because React keeps their default in the `value` ATTRIBUTE, which reset honours — and the action echoes the submitted values back, so the restored default IS what the user typed. **A `<select>` has no such attribute: its reset baseline is fixed at mount, so an updated `defaultValue` is ignored and the field silently blanks.**
+- **Why it was worse than a display glitch:** the blanked dropdown is then submitted as empty on the NEXT save, overwriting a real answer. Confirmed in the database — Nick's `graduation_year` had saved fine as `2028`, but `school_id` had been wiped to `null`.
+- **Proved, not guessed:** a throwaway page reproduced it (`plain defaultValue → (BLANK)`), and showed that **making the select controlled does NOT fix it** — the reset happens after React's render, so React never notices the DOM diverged and never re-syncs.
+- **The fix** (in `SelectField` in `forms.tsx`, and again in `inline-track.tsx`): track the selection in state and re-assert it onto the DOM in an effect, which is the only point that runs after React's reset. Guard on `ref.current.value !== value` so unrelated re-renders (a sibling field's `onChange`) can't snap the dropdown back to stale data. Verified across TWO consecutive saves — the naive "only re-apply when defaultValue changes" version passes the first and fails the second, since `defaultValue` is unchanged between them.
+- **Radios and checkboxes are safe** — `defaultChecked` maps to the `checked` attribute, so reset restores the echoed value (confirmed on the parent form's availability radio).
+- **Any new `<select>` inside a form with a server action needs this treatment.** Use `SelectField`; a raw `<select>` will blank.
+
 **Mail scanners consume verification links (found in QA 2026-08-18) — expect this to affect real applicants:**
 
 - Signing up `nicholasimparato@gmail.com` produced `email_confirmed_at` **8 seconds after** `created_at`, long before a human could have clicked. Gmail (and most providers/security tools) prefetch links in email to scan them, which spends Supabase's ONE-TIME token. The address is genuinely confirmed; it's the applicant's own click that then fails with `otp_expired` → `/auth/auth-error`.
