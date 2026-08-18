@@ -7,41 +7,11 @@ import {
   SORT_OPTIONS,
 } from "@/utils/applicants";
 import { STEPS, STATUS_LABELS, type StepStatus } from "@/utils/steps";
-import { InlineTrack } from "@/components/admin/inline-track";
+import { ApplicantTable } from "@/components/admin/applicant-table";
 
 export const metadata: Metadata = { title: "Applicants — Launchpad Admin" };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-
-const STATUS_DOT: Record<StepStatus, string> = {
-  not_started: "bg-grey-tint2",
-  in_progress: "bg-teal-tint2",
-  submitted: "bg-teal-dark",
-  pending_verification: "bg-teal-tint2",
-  needs_attention: "bg-orange",
-  complete: "bg-green",
-};
-
-function StatusPips({ statuses }: { statuses: Record<number, StepStatus> }) {
-  return (
-    <span className="flex gap-1">
-      {STEPS.map((step) => {
-        const status = statuses[step.number] ?? "not_started";
-        return (
-          <span
-            key={step.number}
-            title={`Step ${step.number} (${step.name}): ${STATUS_LABELS[status]}`}
-            className={`inline-block h-3 w-3 rounded-full ${STATUS_DOT[status]}`}
-          >
-            <span className="sr-only">
-              Step {step.number} {STATUS_LABELS[status]}.
-            </span>
-          </span>
-        );
-      })}
-    </span>
-  );
-}
 
 export default async function ApplicantsPage({
   searchParams,
@@ -62,6 +32,7 @@ export default async function ApplicantsPage({
           <h1 className="text-2xl font-bold">Applicants</h1>
           <p className="mt-1 text-xs">
             Showing {rows.length} of {total}
+            {rows.length > 0 && " · tick a row, or shift-click to select a range"}
             {hasActiveFilters(filters) && (
               <>
                 {" · "}
@@ -210,66 +181,7 @@ export default async function ApplicantsPage({
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-grey-tint2 bg-white shadow-sm">
-          <table className="w-full min-w-[900px] border-collapse text-base">
-            <caption className="sr-only">
-              Applicants, {rows.length} shown of {total}
-            </caption>
-            <thead>
-              <tr className="border-b border-grey-tint2 text-left">
-                <th scope="col" className="px-3 py-3">Name</th>
-                <th scope="col" className="px-3 py-3">School</th>
-                <th scope="col" className="px-3 py-3">Grad</th>
-                <th scope="col" className="px-3 py-3">Program</th>
-                <th scope="col" className="px-3 py-3">Track</th>
-                <th scope="col" className="px-3 py-3">Steps 1–7</th>
-                <th scope="col" className="px-3 py-3">Done</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.applicationId} className="border-b border-grey-tint3 last:border-0">
-                  <th scope="row" className="px-3 py-3 text-left font-normal">
-                    <Link
-                      className="font-bold text-teal-dark underline"
-                      href={`/admin/applicants/${r.applicationId}`}
-                    >
-                      {r.lastName}, {r.firstName}
-                    </Link>
-                    {r.preferredName && (
-                      <span className="block text-xs">goes by {r.preferredName}</span>
-                    )}
-                    <span className="block text-xs">{r.email}</span>
-                    {r.collegeWarning && (
-                      <span className="mt-1 inline-block rounded-full bg-orange-tint3 px-3 py-1 text-xs font-bold text-orange-dark">
-                        College plan flagged
-                      </span>
-                    )}
-                  </th>
-                  <td className="px-3 py-3">
-                    {r.schoolName || <span className="text-grey-tint1">—</span>}
-                    {r.isPartnerSchool && (
-                      <span className="block text-xs text-green-dark">Partner school</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-3">{r.graduationYear ?? "—"}</td>
-                  <td className="px-3 py-3 capitalize">{r.program ?? "—"}</td>
-                  <td className="px-3 py-3">
-                    <InlineTrack
-                      applicationId={r.applicationId}
-                      track={r.track}
-                      label={`${r.firstName} ${r.lastName}`}
-                    />
-                  </td>
-                  <td className="px-3 py-3">
-                    <StatusPips statuses={r.statuses} />
-                  </td>
-                  <td className="px-3 py-3">{r.completedCount}/7</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ApplicantTable rows={rows} />
       )}
     </>
   );
