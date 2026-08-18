@@ -11,6 +11,11 @@ import {
   DocumentPanel,
   NotesPanel,
 } from "@/components/admin/profile-forms";
+import {
+  C2LVerifyRow,
+  DecisionPanel,
+  InterviewSummary,
+} from "@/components/admin/staff-step-forms";
 
 export const metadata: Metadata = { title: "Applicant — Launchpad Admin" };
 
@@ -125,6 +130,50 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
               ))}
             </ul>
           )}
+        </Card>
+      </div>
+
+      {/* The staff-owned steps: interview (4), C2L verification (5 and 6), and
+          the decision (7). These are the actions a reviewer opens a profile to
+          take, so they sit above the read-only application detail. */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card title="Interview (Step 4)">
+          <InterviewSummary
+            applicationId={profile.applicationId}
+            recorded={profile.interview.recorded}
+            interviewDate={profile.interview.interviewDate}
+            finalRating={profile.interview.finalRating}
+            interviewers={profile.interview.interviewers}
+          />
+        </Card>
+
+        <Card title="C2LPHL verification (Steps 5–6)">
+          <p className="mb-3 text-xs">
+            The student self-reports; staff confirm against C2LPHL&apos;s
+            reports. Only staff can mark these complete.
+          </p>
+          <C2LVerifyRow
+            applicationId={profile.applicationId}
+            stepNumber={5}
+            stepName="C2LPHL Application"
+            status={profile.statuses[5] ?? "not_started"}
+          />
+          <C2LVerifyRow
+            applicationId={profile.applicationId}
+            stepNumber={6}
+            stepName="C2LPHL Required Documents"
+            status={profile.statuses[6] ?? "not_started"}
+          />
+        </Card>
+
+        <Card title="Admissions decision (Step 7)">
+          <DecisionPanel
+            applicationId={profile.applicationId}
+            status={profile.decision.status}
+            notes={profile.decision.notes}
+            decidedAt={profile.decision.decidedAt}
+            releasedAt={profile.decision.releasedAt}
+          />
         </Card>
       </div>
 

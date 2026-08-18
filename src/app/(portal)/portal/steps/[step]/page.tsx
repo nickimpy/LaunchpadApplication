@@ -5,6 +5,9 @@ import { getStep1Data } from "@/utils/step1";
 import { getStep3Data } from "@/utils/step3";
 import { getC2LUrl } from "@/utils/c2l";
 import { C2L_COPY, isC2LStep } from "@/utils/c2l-options";
+import { getMyReleasedDecision } from "@/utils/decision";
+import { DECISION_LABELS } from "@/utils/decision-options";
+import { formatDate } from "@/utils/dates";
 import { Step1Form } from "@/components/portal/step1-form";
 import { Step3Form } from "@/components/portal/step3-form";
 import { C2LReportForm } from "@/components/portal/c2l-report-form";
@@ -108,6 +111,41 @@ async function Step2Panel({
   );
 }
 
+/**
+ * Step 7. A decision the student can read is, by definition, one staff have
+ * released: RLS hides unreleased rows entirely, so there is nothing to guard
+ * against here beyond rendering what comes back.
+ */
+async function Step7Panel() {
+  const decision = await getMyReleasedDecision();
+
+  if (!decision) {
+    return (
+      <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
+        <h2 className="mb-3 text-lg font-bold">Your decision will appear here</h2>
+        <p>
+          There&apos;s nothing for you to do on this step. When your admissions
+          decision is ready, we&apos;ll let you know and you can view it right
+          here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-teal-dark bg-teal-tint3 p-6">
+      <h2 className="mb-3 text-lg font-bold">Your admissions decision</h2>
+      <p className="mb-3 text-2xl font-bold">
+        {DECISION_LABELS[decision.status] ?? decision.status}
+      </p>
+      <p className="text-xs">
+        Released {formatDate(decision.releasedAt)}. If you have questions about
+        what this means, please get in touch with Launchpad staff.
+      </p>
+    </div>
+  );
+}
+
 export default async function StepPage({ params }: { params: Params }) {
   const stepNumber = parseStep((await params).step);
   if (!stepNumber) notFound();
@@ -170,16 +208,7 @@ export default async function StepPage({ params }: { params: Params }) {
           contactEmail={data.contactEmail}
         />
       ) : step.number === 7 ? (
-        <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
-          <h2 className="mb-3 text-lg font-bold">
-            Your decision will appear here
-          </h2>
-          <p>
-            There&apos;s nothing for you to do on this step. When your
-            admissions decision is ready, we&apos;ll email you and you can
-            view it right here.
-          </p>
-        </div>
+        <Step7Panel />
       ) : step.owner === "staff" ? (
         <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-lg font-bold">

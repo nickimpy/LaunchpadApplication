@@ -129,6 +129,30 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Deferred to Phase 8 (as scoped in BUILD_PLAN):** Track A/B **auto**-assignment from the partner-school list (the inline override exists and is respected), C2L verification toggles for Steps 5/6, and bulk counselor sign-off — that last one is really a bulk version of the Phase 8 verification toggle, which is why it isn't here.
 
+**Done — Phase 8 (Admin Dashboard, Part 2: Interviews, Decisions, Audit) — code complete, user QA pending:**
+
+- **Interview rubric** at `/admin/applicants/[id]/interview`: all 7 criteria from the 2026 rubric scored 0–3 with a note each, pathway preference (5-point), pre-screening schedule conflicts and college plans, interviewers, date, overall notes, and the committee's final rating. Copy lives in `src/utils/interview-options.ts` (shared module, NOT the action file). Saving marks **Step 4 complete**; blank scores are deleted so the stored rubric always matches the form.
+- **The page surfaces what the rubric depends on**, per the PRD: parent-form status in a green/orange panel (criterion 6, External support, requires a submitted parent form) and the student's Step 3 short answers inline in collapsible blocks (criterion 7, Communication, rates them). Interviewers verify both during pre-screening.
+- **Step 4 and Step 7 are written directly, not via `setStepStatus()`** — that helper only handles student-actionable steps and rejects staff-owned ones.
+- **Track A/B auto-assignment** in `saveStep1`: partner school → A, anything else (including "Other" free-text and graduates) → B. **Never overwrites `track_overridden`**, which the admin table's inline picker sets — so auto-assignment can't undo a staff decision. **Migration 0007** backfills existing rows under the same guard (already applied to dev; it correctly skipped the one row, which was staff-overridden).
+- **C2L verification** (Steps 5–6) on the profile: staff move a self-reported step to `complete`. Un-verifying returns it to `pending_verification`, not `not_started` — the student did report it, and erasing that would be wrong. Disabled until the student reports.
+- **Decisions**: all 8 statuses plus staff-only notes, recorded separately from **release**. Release stamps `released_at`/`released_by` and completes Step 7. Changing a decision after release keeps it visible (the student has already been told). **Emails are Phase 9** — the UI says release only reveals it in the portal.
+- Student **Step 7** now renders a released decision; `src/utils/decision.ts` reads it.
+- New audit actions: `interview.record`/`update`, `c2l.verify`/`unverify`, `decision.record`/`update`/`release`, `application.track_update`, `records_release.download`.
+
+**Phase 8 verified against real RLS with genuine user sessions (2026-08-18)** — not just UI checks. Created real student and admin JWTs via `auth.admin.generateLink` + `verifyOtp({token_hash})`, which is the way to test policies properly from a script:
+
+- Unreleased decision → student reads **0 rows**. This is the PRD's central non-negotiable and it holds **at the database level** (`decisions_student_released`), so a UI mistake cannot leak a decision.
+- After release → student reads exactly 1 row.
+- Student attempting to change their own decision → status unchanged in the database.
+- Student reading the `interviews` table → 0 rows.
+- Admin session (not the service role) can write Step 4/5 status, `interviews`, and `interview_scores`.
+- All test data removed afterwards; step_progress restored to where QA had left it.
+
+**Phase 8 QA still owed (user):** record an interview and confirm Step 4 flips to complete; verify a C2L step; record "Offer Extended" and confirm the student portal does NOT show it, then release it and confirm it appears — the phase's stated "done when".
+
+**Build cache gotcha:** the project lives under `~/Documents`, which a sync service touches, and it occasionally leaves duplicate generated files in `.next` (`routes.d 2.ts`, `cache-life.d 2.ts`). Those break `tsc` with bogus duplicate-identifier errors. Fix: `rm -rf .next`.
+
 **Records-release PDF (added 2026-08-18, on Nick's request):**
 
 - **Why:** the signed parent consent is what schools require before releasing a transcript, so staff need a document they can send. `/admin/applicants/[id]/release` returns it as a PDF.

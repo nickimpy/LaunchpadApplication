@@ -58,6 +58,18 @@ export type ApplicantProfile = {
   notes: ProfileNote[];
   audit: AuditEntry[];
   parentLinkUrl: string;
+  interview: {
+    recorded: boolean;
+    interviewDate: string | null;
+    finalRating: number | null;
+    interviewers: string | null;
+  };
+  decision: {
+    status: string | null;
+    notes: string | null;
+    decidedAt: string | null;
+    releasedAt: string | null;
+  };
 };
 
 /**
@@ -89,6 +101,8 @@ export async function getApplicantProfile(
     { data: documents },
     { data: notes },
     { data: audit },
+    { data: interview },
+    { data: decision },
   ] = await Promise.all([
     supabase
       .from("guardians")
@@ -125,6 +139,16 @@ export async function getApplicantProfile(
       .eq("entity_id", applicationId)
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase
+      .from("interviews")
+      .select("interview_date, final_rating, interviewers")
+      .eq("application_id", applicationId)
+      .maybeSingle(),
+    supabase
+      .from("decisions")
+      .select("status, notes, decided_at, released_at")
+      .eq("application_id", applicationId)
+      .maybeSingle(),
   ]);
 
   const statuses: Record<number, StepStatus> = {};
@@ -217,5 +241,17 @@ export async function getApplicantProfile(
       createdAt: a.created_at as string,
     })),
     parentLinkUrl: `${origin}/parent/${application.parent_link_token}`,
+    interview: {
+      recorded: Boolean(interview),
+      interviewDate: (interview?.interview_date as string) ?? null,
+      finalRating: (interview?.final_rating as number) ?? null,
+      interviewers: (interview?.interviewers as string) ?? null,
+    },
+    decision: {
+      status: (decision?.status as string) ?? null,
+      notes: (decision?.notes as string) ?? null,
+      decidedAt: (decision?.decided_at as string) ?? null,
+      releasedAt: (decision?.released_at as string) ?? null,
+    },
   };
 }

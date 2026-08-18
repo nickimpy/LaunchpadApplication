@@ -111,6 +111,21 @@ export async function saveStep1(
     programAnswers.fnd_post_hs_plan = field(formData, "fnd_post_hs_plan");
   }
 
+  // Interview track (PRD): partner school -> Track A, otherwise Track B.
+  // Graduates go to B too, which falls out naturally — they pick "Other" or a
+  // non-partner school. Never overwrite a staff override.
+  const trackFromSchool = async (): Promise<"A" | "B" | null> => {
+    if (usingOtherSchool) return "B";
+    if (!v.school_id) return null; // no school chosen yet; leave track alone
+    const { data: school } = await supabase
+      .from("schools")
+      .select("is_partner")
+      .eq("id", v.school_id)
+      .maybeSingle();
+    if (!school) return null;
+    return school.is_partner ? "A" : "B";
+  };
+
   const collegeWarningFlagged =
     program === "foundations" &&
     !isJunior &&
@@ -258,6 +273,15 @@ export async function saveStep1(
     .eq("id", portal.userId);
   if (studentErr) return { errors: { form: SAVE_FAILED }, values: echo() };
 
+  // Respect a staff override: the admin table sets track_overridden when a
+  // human picks a track, and auto-assignment must not undo that decision.
+  const { data: current } = await supabase
+    .from("applications")
+    .select("track_overridden")
+    .eq("id", applicationId)
+    .maybeSingle();
+  const autoTrack = current?.track_overridden ? null : await trackFromSchool();
+
   const { error: appErr } = await supabase
     .from("applications")
     .update({
@@ -274,6 +298,7 @@ export async function saveStep1(
       program: program === "lightspeed" || program === "foundations" ? program : null,
       program_answers: programAnswers,
       college_warning_flagged: collegeWarningFlagged,
+      ...(autoTrack ? { track: autoTrack } : {}),
       // Stamp the parent-link generation time on first completion — but not
       // when validation failed, since the step isn't actually complete.
       ...(intent === "submit" && !wasComplete && !hasErrors
