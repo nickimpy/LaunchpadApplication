@@ -129,6 +129,13 @@ Admissions portal for Launchpad Philly (a Building 21 program). Students apply t
 
 **Deferred to Phase 8 (as scoped in BUILD_PLAN):** Track A/B **auto**-assignment from the partner-school list (the inline override exists and is respected), C2L verification toggles for Steps 5/6, and bulk counselor sign-off — that last one is really a bulk version of the Phase 8 verification toggle, which is why it isn't here.
 
+**Test accounts (decided 2026-08-17, keep these roles separate):**
+
+- **`nick@launchpadphilly.org` = ADMIN ONLY.** Its student record was deleted on 2026-08-17 so staff and applicant roles never mix again. Logging in lands on `/admin`; `/portal` redirects back to `/admin` (no student record, and `getPortalData` won't self-heal one for an admin).
+- **`nicholasimparato@gmail.com` = the test student.** Sign up through `/signup` like a real applicant.
+- Both roles CAN coexist on one auth user (the app supports it, since staff emails are shared with students at Launchpad) — we're just choosing not to, so QA exercises the admin-only path honestly.
+- **Deleting the student side is safe; deleting the auth user is NOT.** `admin_users.id` references `auth.users(id)`, so removing the auth user cascade-deletes super admin access and locks everyone out of the dashboard. Delete the `students` row only — the application, step_progress, guardians, demographics, essays, and parent form all cascade from there.
+
 **Deployment URL:** production is `https://launchpad-application.vercel.app` (Vercel). Use this — not a placeholder — for Supabase Site URL, redirect URLs, and any absolute links.
 
 **Done — Supabase dashboard config (confirmed by user via screenshots):**
