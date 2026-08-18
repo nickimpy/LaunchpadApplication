@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getPortalData } from "@/utils/step-engine";
 import { getStep1Data } from "@/utils/step1";
+import { getStep3Data } from "@/utils/step3";
+import { getC2LUrl } from "@/utils/c2l";
+import { C2L_COPY, isC2LStep } from "@/utils/c2l-options";
 import { Step1Form } from "@/components/portal/step1-form";
+import { Step3Form } from "@/components/portal/step3-form";
+import { C2LReportForm } from "@/components/portal/c2l-report-form";
 import { ParentLinkBox } from "@/components/portal/parent-link-box";
 import { getParentLinkUrl } from "@/utils/parent-link";
 import {
@@ -155,6 +160,15 @@ export default async function StepPage({ params }: { params: Params }) {
             open up and you can work on them in any order.
           </p>
         </div>
+      ) : step.number === 3 ? (
+        <Step3Form data={(await getStep3Data())!} />
+      ) : isC2LStep(step.number) ? (
+        <C2LReportForm
+          stepNumber={step.number}
+          status={step.status}
+          url={await getC2LUrl(data.cycleId, C2L_COPY[step.number].urlKey)}
+          contactEmail={data.contactEmail}
+        />
       ) : step.number === 7 ? (
         <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-lg font-bold">

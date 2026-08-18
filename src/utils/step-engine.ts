@@ -21,6 +21,7 @@ export type PortalData = {
     preferred_name: string | null;
   };
   applicationId: string;
+  cycleId: string;
   cycleName: string;
   contactEmail: string;
   steps: StepView[];
@@ -131,6 +132,7 @@ export const getPortalData = cache(async (): Promise<PortalData | null> => {
     userId: user.id,
     student,
     applicationId: application.id,
+    cycleId: cycle.id,
     cycleName: cycle.name,
     contactEmail,
     steps,

@@ -289,6 +289,7 @@ export function Textarea({
   optional,
   hint,
   rows = 4,
+  onChange,
 }: {
   label: string;
   name: string;
@@ -297,6 +298,7 @@ export function Textarea({
   optional?: boolean;
   hint?: string;
   rows?: number;
+  onChange?: (value: string) => void;
 }) {
   const errorId = error ? `${name}-error` : undefined;
   const hintId = hint ? `${name}-hint` : undefined;
@@ -319,6 +321,7 @@ export function Textarea({
         rows={rows}
         defaultValue={defaultValue}
         required={!optional}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={
           [errorId, hintId].filter(Boolean).join(" ") || undefined
