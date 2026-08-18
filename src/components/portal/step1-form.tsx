@@ -266,6 +266,7 @@ export function Step1Form({ data }: { data: Step1Data }) {
           defaultValue={values.guardian1.phone} error={err?.guardian1_phone} />
         <TextField label="Relationship to you" name="guardian1_relationship"
           defaultValue={values.guardian1.relationship}
+          hint="For example: mother, father, grandmother, legal guardian."
           error={err?.guardian1_relationship} />
 
         <RadioGroup legend="Would you like to add a second parent or guardian?"
@@ -289,6 +290,7 @@ export function Step1Form({ data }: { data: Step1Data }) {
               defaultValue={values.guardian2.phone} error={err?.guardian2_phone} />
             <TextField label="Relationship to you" name="guardian2_relationship"
               defaultValue={values.guardian2.relationship}
+              hint="For example: mother, father, grandmother, legal guardian."
               error={err?.guardian2_relationship} />
           </>
         )}

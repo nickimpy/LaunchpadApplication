@@ -215,9 +215,13 @@ export async function saveStep1(
       set(`guardian${n}_last_name`, nameError(g.last_name, "guardian's last name"));
       set(`guardian${n}_email`, emailError(g.email));
       set(`guardian${n}_phone`, phoneError(g.phone));
+      // Voiced from the STUDENT's side — they're describing their guardian
+      // here. (The parent form asks the same thing the other way round.)
       set(
         `guardian${n}_relationship`,
-        requiredError(g.relationship, "relationship to the student"),
+        g.relationship
+          ? null
+          : "Tell us how this parent or guardian is related to you.",
       );
     };
     checkGuardian(1, g1);
