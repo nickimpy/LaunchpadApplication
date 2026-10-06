@@ -1,11 +1,13 @@
 "use client";
 
 import { useActionState, useCallback, useRef, useState } from "react";
+import Link from "next/link";
 import { submitParentForm } from "@/app/parent/parent-actions";
 import type { ParentFormData } from "@/utils/parent-form";
 import {
   AVAILABILITY_OPTIONS,
   IEP_OPTIONS,
+  SELF_RELATIONSHIP,
   WANTS_INFO_OPTIONS,
   type ParentFormState,
 } from "@/utils/parent-options";
@@ -17,6 +19,7 @@ import {
   TextField,
   Textarea,
 } from "@/components/forms";
+import { RichText } from "@/components/rich-text";
 import {
   SignaturePad,
   type SignaturePadHandle,
@@ -34,18 +37,35 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 export function ParentFormComplete({
   studentFirstName,
   contactEmail,
+  selfRelease = false,
 }: {
   studentFirstName: string;
   contactEmail: string;
+  selfRelease?: boolean;
 }) {
   return (
     <div className="rounded-lg border border-green-dark bg-green-tint3 p-6">
       <h1 className="mb-3 text-2xl font-bold">Thank you — you&apos;re done</h1>
-      <p className="mb-3">
-        We&apos;ve received and recorded your signed parent/guardian form for{" "}
-        {studentFirstName}. This step of their application is now complete —
-        there&apos;s nothing else you need to do.
-      </p>
+      {selfRelease ? (
+        <>
+          <p className="mb-3">
+            We&apos;ve received and recorded your signed records release form.
+            This step of your application is now complete — there&apos;s nothing
+            else you need to do here.
+          </p>
+          <p className="mb-3">
+            <Link className="font-bold text-teal-dark underline" href="/portal">
+              Back to your application
+            </Link>
+          </p>
+        </>
+      ) : (
+        <p className="mb-3">
+          We&apos;ve received and recorded your signed parent/guardian form for{" "}
+          {studentFirstName}. This step of their application is now complete —
+          there&apos;s nothing else you need to do.
+        </p>
+      )}
       <p className="text-xs">
         Questions? Email{" "}
         <a className="text-teal-dark underline" href={`mailto:${contactEmail}`}>
@@ -102,6 +122,8 @@ export function ParentForm({
   };
 
   const needsConcerns = availability === "no" || availability === "not_sure";
+  // 18+ applicant signing their own release: same form, student as the signer.
+  const self = data.selfRelease;
 
   if (state.submitted) {
     return (
@@ -114,9 +136,12 @@ export function ParentForm({
     );
   }
 
-  const availabilityLegend = `As far as you know, is your student available to attend Launchpad for 6 weeks this summer${
-    data.summerDates ? ` (${data.summerDates})` : ""
-  }${data.summerLocation ? ` at ${data.summerLocation}` : ""}?`;
+  const when = `${data.summerDates ? ` (${data.summerDates})` : ""}${
+    data.summerLocation ? ` at ${data.summerLocation}` : ""
+  }`;
+  const availabilityLegend = self
+    ? `Are you available to attend Launchpad for 6 weeks this summer${when}?`
+    : `As far as you know, is your student available to attend Launchpad for 6 weeks this summer${when}?`;
 
   // Runs before the server action. If the canvas is empty but a name is typed,
   // render that name as the signature image (the accessible path) rather than
@@ -143,12 +168,23 @@ export function ParentForm({
 
   return (
     <>
-      <h1 className="mb-3 text-2xl font-bold">Parent / Guardian Form</h1>
-      <p className="mb-6">
-        Your student, {data.studentName}, has applied to Launchpad Philly. This
-        short form is the parent/guardian part of their application — you
-        don&apos;t need an account, and it should take about five minutes.
-      </p>
+      <h1 className="mb-3 text-2xl font-bold">
+        {self ? "Records Release Form" : "Parent / Guardian Form"}
+      </h1>
+      {self ? (
+        <p className="mb-6">
+          You&apos;re 18 or older, so you can authorize the release of your own
+          school records. This short form is part of your application to
+          Launchpad Philly — it should take about five minutes.
+        </p>
+      ) : (
+        <p className="mb-6">
+          Your student, {data.studentName}, has applied to Launchpad Philly.
+          This short form is the parent/guardian part of their application —
+          you don&apos;t need an account, and it should take about five
+          minutes.
+        </p>
+      )}
 
       <div ref={statusRef} tabIndex={-1} className="focus:outline-none">
         {err?.form && <Alert tone="error">{err.form}</Alert>}
@@ -160,22 +196,26 @@ export function ParentForm({
       </div>
 
       <form action={action} onSubmit={handleSubmit} noValidate>
-        <SectionHeading>About Launchpad</SectionHeading>
-        <RadioGroup
-          legend="Before we get started, do you want to learn a bit more about Launchpad?"
-          name="wants_program_info"
-          options={WANTS_INFO_OPTIONS}
-          defaultValue={dv.wants_program_info}
-          optional
-          onChange={setWantsInfo}
-        />
-        {wantsInfo === "yes" && data.programInfo && (
-          <div className="mb-6 rounded-lg border border-teal-dark bg-teal-tint3 p-6">
-            <p className="whitespace-pre-line">{data.programInfo}</p>
-          </div>
+        {!self && (
+          <>
+            <SectionHeading>About Launchpad</SectionHeading>
+            <RadioGroup
+              legend="Before we get started, do you want to learn a bit more about Launchpad?"
+              name="wants_program_info"
+              options={WANTS_INFO_OPTIONS}
+              defaultValue={dv.wants_program_info}
+              optional
+              onChange={setWantsInfo}
+            />
+            {wantsInfo === "yes" && data.programInfo && (
+              <div className="mb-6 rounded-lg border border-teal-dark bg-teal-tint3 p-6">
+                <RichText text={data.programInfo} />
+              </div>
+            )}
+          </>
         )}
 
-        <SectionHeading>Your student</SectionHeading>
+        <SectionHeading>{self ? "Your information" : "Your student"}</SectionHeading>
         <TextField
           label="Student name"
           name="student_name_display"
@@ -195,6 +235,17 @@ export function ParentForm({
           defaultValue={data.schoolName}
           readOnly
         />
+        <p className="-mt-3 mb-6 text-xs">
+          See something wrong here? Email{" "}
+          <a
+            className="font-bold text-teal-dark underline"
+            href={`mailto:${data.contactEmail}`}
+          >
+            {data.contactEmail}
+          </a>{" "}
+          and we&apos;ll get it fixed, or{" "}
+          {self ? "edit your application" : "instruct your student to edit their application"}.
+        </p>
 
         <SectionHeading>Availability &amp; support</SectionHeading>
         <RadioGroup
@@ -214,14 +265,18 @@ export function ParentForm({
           />
         )}
         <RadioGroup
-          legend="Does your student have an IEP?"
+          legend={self ? "Do you have an IEP?" : "Does your student have an IEP?"}
           name="iep"
           options={IEP_OPTIONS}
           defaultValue={dv.iep}
-          optional
+          error={err?.iep}
         />
         <Textarea
-          label="Is there anything you want us to know as we consider your student's application?"
+          label={
+            self
+              ? "Is there anything you want us to know as we consider your application?"
+              : "Is there anything you want us to know as we consider your student's application?"
+          }
           name="comments"
           defaultValue={dv.comments}
           optional
@@ -242,13 +297,19 @@ export function ParentForm({
           autoComplete="family-name"
           error={err?.parent_last_name}
         />
-        <TextField
-          label="Your relationship to the student"
-          name="parent_relationship"
-          defaultValue={dv.parent_relationship}
-          hint="For example: mother, father, uncle, grandmother, caregiver."
-          error={err?.parent_relationship}
-        />
+        {self ? (
+          // The server sets this itself for a self-signed release; the field
+          // only exists so the submitted form stays shaped like any other.
+          <input type="hidden" name="parent_relationship" value={SELF_RELATIONSHIP} />
+        ) : (
+          <TextField
+            label="Your relationship to the student"
+            name="parent_relationship"
+            defaultValue={dv.parent_relationship}
+            hint="For example: mother, father, uncle, grandmother, caregiver."
+            error={err?.parent_relationship}
+          />
+        )}
         <TextField
           label="Best email for updates"
           name="parent_email"
@@ -286,7 +347,7 @@ export function ParentForm({
 
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
           <ActionButton pendingLabel="Submitting…">
-            Submit signed form
+            {self ? "Sign and submit" : "Submit signed form"}
           </ActionButton>
         </div>
       </form>

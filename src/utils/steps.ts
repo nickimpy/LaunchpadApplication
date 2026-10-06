@@ -62,7 +62,7 @@ export const STEPS: StepMeta[] = [
     studentActionable: false,
     maxStudentStatus: null,
     summary:
-      "An interview at your school or at Launchpad. Launchpad staff record the outcome here when it's done.",
+      "A Launchpad staff member will reach out to you to complete your interview! Check back here to make sure your interview is marked “complete” once done.",
   },
   {
     number: 5,
@@ -80,7 +80,7 @@ export const STEPS: StepMeta[] = [
     studentActionable: true,
     maxStudentStatus: "pending_verification",
     summary:
-      "Upload your required documents in the C2LPHL system, then report it here. Launchpad staff verify it.",
+      "Upload your required documents in the C2LPHL system, then report it here. Launchpad staff verify it. If you do not have access to the required documents, reach out to {contact_email} ASAP so we can support you with enrolling in the program.",
   },
   {
     number: 7,
@@ -94,6 +94,33 @@ export const STEPS: StepMeta[] = [
 ];
 
 export const TOTAL_STEPS = STEPS.length;
+
+/**
+ * Applicants 18+ can authorize the release of their own records, in which case
+ * Step 2 is theirs to complete (the same form a parent would sign, rebranded as
+ * the records release form) instead of a parent's. The step number, order, and
+ * the way it completes (through the form link, not the student's own status
+ * writes) are unchanged — only how it is presented.
+ */
+export function withSelfRelease(meta: StepMeta): StepMeta {
+  if (meta.number !== 2) return meta;
+  return {
+    ...meta,
+    name: "Records Release Form",
+    owner: "student",
+    // Presentation only: the student opens the form and signs it, which flips
+    // the step server-side. setStepStatus() keeps using the static STEPS entry,
+    // so this does NOT let a student set Step 2's status themselves.
+    studentActionable: true,
+    summary:
+      "You're 18 or older, so you sign your own records release — the form that lets your high school send your records to Launchpad. It takes about five minutes.",
+  };
+}
+
+/** Fills {placeholders} in step copy with cycle settings. */
+export function fillCopy(text: string, vars: Record<string, string>): string {
+  return text.replace(/\{(\w+)\}/g, (whole, key: string) => vars[key] ?? whole);
+}
 
 export function getStepMeta(stepNumber: number): StepMeta | undefined {
   return STEPS.find((s) => s.number === stepNumber);

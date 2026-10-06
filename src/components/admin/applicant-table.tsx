@@ -2,11 +2,8 @@
 
 import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  bulkApply,
-  BULK_ACTIONS,
-  type BulkState,
-} from "@/app/(admin)/admin/applicants/bulk-actions";
+import { bulkApply } from "@/app/(admin)/admin/applicants/bulk-actions";
+import { BULK_ACTIONS, type BulkState } from "@/utils/bulk-options";
 import { InlineTrack } from "@/components/admin/inline-track";
 import { DECISION_OPTIONS } from "@/utils/decision-options";
 import type { ApplicantRow } from "@/utils/applicants";
@@ -243,7 +240,6 @@ export function ApplicantTable({ rows }: { rows: ApplicantRow[] }) {
               <th scope="col" className="px-3 py-3">Name</th>
               <th scope="col" className="px-3 py-3">School</th>
               <th scope="col" className="px-3 py-3">Grad</th>
-              <th scope="col" className="px-3 py-3">Program</th>
               <th scope="col" className="px-3 py-3">Track</th>
               <th scope="col" className="px-3 py-3">Steps 1–7</th>
               <th scope="col" className="px-3 py-3">Done</th>
@@ -293,7 +289,6 @@ export function ApplicantTable({ rows }: { rows: ApplicantRow[] }) {
                   )}
                 </td>
                 <td className="px-3 py-3">{r.graduationYear ?? "—"}</td>
-                <td className="px-3 py-3 capitalize">{r.program ?? "—"}</td>
                 <td className="px-3 py-3">
                   <InlineTrack
                     applicationId={r.applicationId}

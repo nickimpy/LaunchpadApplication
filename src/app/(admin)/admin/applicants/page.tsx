@@ -87,19 +87,6 @@ export default async function ApplicantsPage({
         </label>
 
         <label className="block">
-          <span className="block text-xs font-bold">Program</span>
-          <select
-            name="program"
-            defaultValue={filters.program}
-            className="mt-1 w-full rounded-md border border-grey-tint1 bg-white px-3 py-3 text-base"
-          >
-            <option value="">Any program</option>
-            <option value="lightspeed">Lightspeed</option>
-            <option value="foundations">Foundations</option>
-          </select>
-        </label>
-
-        <label className="block">
           <span className="block text-xs font-bold">Interview track</span>
           <select
             name="track"

@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { saveStep1 } from "@/app/(portal)/portal/steps/step1-actions";
 import type { Step1Data } from "@/utils/step1";
-import { ParentLinkBox } from "@/components/portal/parent-link-box";
+import { ParentLinkBox, SelfReleaseBox } from "@/components/portal/parent-link-box";
 import {
   Alert,
   ActionButton,
@@ -12,28 +12,22 @@ import {
   RadioGroup,
   SelectField,
   TextField,
-  Textarea,
 } from "@/components/forms";
+import { GPA_MAX, GPA_MIN } from "@/utils/validation";
 import {
   SCHOOL_OTHER,
   type Step1State,
   GRADUATION_YEARS,
-  JUNIOR_GRAD_YEARS,
-  PROGRAMS,
   GENDER_OPTIONS,
   PRONOUN_OPTIONS,
   RACE_OPTIONS,
   HOUSEHOLD_INCOME_OPTIONS,
   PARENT_COLLEGE_OPTIONS,
-  LS_GRAD_STATUS_OPTIONS,
-  LS_WORK_AUTH_OPTIONS,
-  LS_SKILLS_OPTIONS,
-  LS_EXPERIENCE_OPTIONS,
-  LS_ACADEMIC_YEAR_PLAN_OPTIONS,
+  PATHWAYS,
   FND_PATHWAY_OPTIONS,
-  FND_TECH_INTEREST_OPTIONS,
   FND_POST_HS_OPTIONS,
-  COLLEGE_WARNING_OPTION,
+  RELEASE_SIGNER_OPTIONS,
+  needsCollegeWarning,
 } from "@/utils/step1-options";
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
@@ -56,7 +50,6 @@ export function Step1Form({ data }: { data: Step1Data }) {
   const statusRef = useStatusFocus(state);
 
   const [gradYear, setGradYear] = useState(values.graduation_year);
-  const [program, setProgram] = useState(values.program);
   const [gender, setGender] = useState(values.gender);
   const [pronouns, setPronouns] = useState(values.pronouns);
   const [race, setRace] = useState<string[]>(values.race_ethnicity);
@@ -67,14 +60,13 @@ export function Step1Form({ data }: { data: Step1Data }) {
   const [postHsPlan, setPostHsPlan] = useState(
     values.program_answers.fnd_post_hs_plan ?? "",
   );
+  const [signer, setSigner] = useState(values.self_release || "no");
 
-  const isJunior = JUNIOR_GRAD_YEARS.includes(gradYear);
-  // Juniors skip program selection and go straight to Foundations (rules 3 & 4).
-  const effectiveProgram = isJunior ? "foundations" : program;
-  const showLightspeed = effectiveProgram === "lightspeed";
-  const showFoundations = effectiveProgram === "foundations";
-  const showCollegeWarning =
-    showFoundations && !isJunior && postHsPlan === COLLEGE_WARNING_OPTION;
+  // 18+ applicants may authorize the release of their own records; then the
+  // parent/guardian section becomes an optional emergency contact.
+  const selfRelease = data.isAdult && signer === "yes";
+  const showCollegeWarning = needsCollegeWarning(gradYear, postHsPlan);
+  const contactWho = selfRelease ? "Emergency contact's" : "Guardian's";
 
   const schoolOptions = [
     ...data.schools.map((s) => ({ value: s.id, label: s.name })),
@@ -94,7 +86,12 @@ export function Step1Form({ data }: { data: Step1Data }) {
           </Alert>
         )}
       </div>
-      {data.parentLinkUrl && <ParentLinkBox url={data.parentLinkUrl} />}
+      {data.parentLinkUrl &&
+        (data.isAdult && values.self_release === "yes" ? (
+          <SelfReleaseBox url={data.parentLinkUrl} />
+        ) : (
+          <ParentLinkBox url={data.parentLinkUrl} />
+        ))}
 
       <form action={action} noValidate>
         {/* ---- Personal ---- */}
@@ -139,8 +136,9 @@ export function Step1Form({ data }: { data: Step1Data }) {
             defaultValue={values.school_other} error={err?.school_other} />
         )}
         <TextField label="Cumulative (weighted) GPA" name="gpa" type="number"
+          inputMode="decimal" min={GPA_MIN} max={GPA_MAX} step="any"
           defaultValue={values.gpa} error={err?.gpa}
-          hint="Your cumulative weighted GPA, for example 3.5." />
+          hint={`Your cumulative weighted GPA, for example 3.5. Enter a number from ${GPA_MIN} to ${GPA_MAX}.`} />
         <SelectField label="Graduation year" name="graduation_year"
           options={GRADUATION_YEARS} defaultValue={values.graduation_year}
           onChange={setGradYear} error={err?.graduation_year}
@@ -148,79 +146,47 @@ export function Step1Form({ data }: { data: Step1Data }) {
         <TextField label="How did you hear about Launchpad?" name="referral_source"
           optional defaultValue={values.referral_source} error={err?.referral_source} />
 
-        {/* ---- Program ---- */}
-        <SectionHeading>Program</SectionHeading>
-        {isJunior ? (
+        {/* ---- Pathway ---- */}
+        <SectionHeading>Pathway interest</SectionHeading>
+        <p className="mb-6">
+          You&apos;re applying to{" "}
+          <span className="font-bold">Launchpad Foundations</span>. Launchpad
+          has two pathways — here&apos;s what each one covers.
+        </p>
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          {PATHWAYS.map((p) => (
+            <div
+              key={p.name}
+              className="rounded-lg border border-teal-dark bg-teal-tint3 p-6"
+            >
+              <h3 className="mb-3 text-lg font-bold">{p.name}</h3>
+              <ul className="list-disc space-y-3 pl-6">
+                {p.points.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <RadioGroup legend="Currently, what pathway are you most interested in?"
+          name="fnd_pathway" options={FND_PATHWAY_OPTIONS}
+          defaultValue={pa.fnd_pathway} error={err?.fnd_pathway} />
+        <RadioGroup legend="What are your current plans for after high school?"
+          name="fnd_post_hs_plan" options={FND_POST_HS_OPTIONS}
+          defaultValue={pa.fnd_post_hs_plan} onChange={setPostHsPlan}
+          error={err?.fnd_post_hs_plan} />
+        {showCollegeWarning && (
           <Alert tone="info">
-            Because you&apos;re graduating in {gradYear}, you&apos;ll apply to{" "}
-            <span className="font-bold">Launchpad Foundations</span>.
+            <span className="font-bold">A quick heads-up:</span> Launchpad is a
+            half-day program based in Center City Philadelphia. It does not fit
+            with a full-time college schedule. You will be asked to report to
+            801 Market Street 4 days/week next school year. You can still
+            continue — your application will be flagged so our team can talk it
+            through with you. Questions? Email{" "}
+            <a className="font-bold underline" href={`mailto:${data.contactEmail}`}>
+              {data.contactEmail}
+            </a>
           </Alert>
-        ) : (
-          <RadioGroup legend="Which program are you applying to?" name="program"
-            options={PROGRAMS} defaultValue={values.program}
-            onChange={setProgram} error={err?.program} />
-        )}
-
-        {showLightspeed && (
-          <>
-            {data.programInfo.lightspeed && (
-              <Alert tone="info">{data.programInfo.lightspeed}</Alert>
-            )}
-            <RadioGroup legend="Which of the following best describes you?"
-              name="ls_grad_status" options={LS_GRAD_STATUS_OPTIONS}
-              defaultValue={pa.ls_grad_status} error={err?.ls_grad_status} />
-            <RadioGroup legend="Which of the following best describes you?"
-              name="ls_work_auth" options={LS_WORK_AUTH_OPTIONS}
-              defaultValue={pa.ls_work_auth} error={err?.ls_work_auth} />
-            <CheckboxGroup
-              legend="Which of the following skills do you have experience with? (check all that apply)"
-              name="ls_skills" options={LS_SKILLS_OPTIONS}
-              defaultValues={pa.ls_skills ?? []} error={err?.ls_skills} />
-            <CheckboxGroup
-              legend="Which of the following have you done before? (check all that apply)"
-              name="ls_experiences" options={LS_EXPERIENCE_OPTIONS}
-              defaultValues={pa.ls_experiences ?? []} error={err?.ls_experiences} />
-            <Textarea
-              label="Please share the specific courses/experiences you've completed including dates and outcomes (certifications earned, AP exam scores, credits received, etc.)"
-              name="ls_courses_detail" optional
-              defaultValue={pa.ls_courses_detail} error={err?.ls_courses_detail} />
-            <RadioGroup
-              legend="Which of the following best describes your plans for the 2025-2026 academic year?"
-              name="ls_academic_year_plan" options={LS_ACADEMIC_YEAR_PLAN_OPTIONS}
-              defaultValue={pa.ls_academic_year_plan}
-              error={err?.ls_academic_year_plan} />
-          </>
-        )}
-
-        {showFoundations && (
-          <>
-            {data.programInfo.foundations && (
-              <Alert tone="info">{data.programInfo.foundations}</Alert>
-            )}
-            <RadioGroup legend="Currently, what pathway are you most interested in?"
-              name="fnd_pathway" options={FND_PATHWAY_OPTIONS}
-              defaultValue={pa.fnd_pathway} error={err?.fnd_pathway} />
-            <RadioGroup legend="How interested are you in pursuing a career in tech?"
-              name="fnd_tech_interest" options={FND_TECH_INTEREST_OPTIONS}
-              defaultValue={pa.fnd_tech_interest} error={err?.fnd_tech_interest} />
-            <RadioGroup legend="What are your current plans for after high school?"
-              name="fnd_post_hs_plan" options={FND_POST_HS_OPTIONS}
-              defaultValue={pa.fnd_post_hs_plan} onChange={setPostHsPlan}
-              error={err?.fnd_post_hs_plan} />
-            {showCollegeWarning && (
-              <Alert tone="info">
-                <span className="font-bold">A quick heads-up:</span> Launchpad
-                is a full-time program based in Philadelphia, so it may not fit
-                with attending college outside Philly right after high school.
-                You can still continue — your application will be flagged so our
-                team can talk it through with you. Questions? Email{" "}
-                <a className="font-bold underline" href={`mailto:${data.contactEmail}`}>
-                  {data.contactEmail}
-                </a>
-                .
-              </Alert>
-            )}
-          </>
         )}
 
         {/* ---- Demographic ---- */}
@@ -256,35 +222,78 @@ export function Step1Form({ data }: { data: Step1Data }) {
         <TextField label="Number of people in your household" name="household_size"
           type="number" defaultValue={values.household_size}
           error={err?.household_size} />
-        <SelectField label="Did either parent attend or complete college?"
+        <SelectField label="Did either of your parents attend or complete college?"
           name="parent_college" options={PARENT_COLLEGE_OPTIONS}
           defaultValue={values.parent_college} error={err?.parent_college} />
 
-        {/* ---- Guardians ---- */}
-        <SectionHeading>Parent / guardian information</SectionHeading>
-        <TextField label="Guardian's first name" name="guardian1_first_name"
+        {/* ---- Records release (18+) ---- */}
+        {data.isAdult && (
+          <>
+            <SectionHeading>Records release</SectionHeading>
+            <p className="mb-6">
+              Launchpad needs permission to request your school records. Because
+              you&apos;re 18 or older, you can give that permission yourself
+              instead of asking a parent or guardian.
+            </p>
+            <RadioGroup legend="Who will sign your records release form?"
+              name="self_release" options={RELEASE_SIGNER_OPTIONS}
+              defaultValue={signer} onChange={setSigner} />
+            {selfRelease && (
+              <Alert tone="info">
+                After you submit Step 1, you&apos;ll sign your own records
+                release form in Step 2. It&apos;s the same form a parent would
+                complete, with you as the signer.
+              </Alert>
+            )}
+          </>
+        )}
+
+        {/* ---- Guardians / emergency contact ---- */}
+        <SectionHeading>
+          {selfRelease
+            ? "Emergency contact (optional)"
+            : "Parent / guardian information"}
+        </SectionHeading>
+        {selfRelease && (
+          <p className="mb-6 text-xs">
+            Someone we can reach if we can&apos;t reach you — a parent,
+            guardian, relative, or friend. You can leave this blank.
+          </p>
+        )}
+        <TextField label={`${contactWho} first name`} name="guardian1_first_name"
+          optional={selfRelease}
           defaultValue={values.guardian1.first_name} error={err?.guardian1_first_name} />
-        <TextField label="Guardian's last name" name="guardian1_last_name"
+        <TextField label={`${contactWho} last name`} name="guardian1_last_name"
+          optional={selfRelease}
           defaultValue={values.guardian1.last_name} error={err?.guardian1_last_name} />
-        <TextField label="Guardian's email" name="guardian1_email" type="email"
+        <TextField label={`${contactWho} email`} name="guardian1_email" type="email"
+          optional={selfRelease}
           defaultValue={values.guardian1.email} error={err?.guardian1_email} />
-        <TextField label="Guardian's phone number" name="guardian1_phone" type="tel"
+        <TextField label={`${contactWho} phone number`} name="guardian1_phone" type="tel"
+          optional={selfRelease}
           defaultValue={values.guardian1.phone} error={err?.guardian1_phone} />
         <TextField label="Relationship to you" name="guardian1_relationship"
+          optional={selfRelease}
           defaultValue={values.guardian1.relationship}
-          hint="For example: mother, father, grandmother, legal guardian."
+          hint={
+            selfRelease
+              ? "For example: mother, aunt, friend, partner."
+              : "For example: mother, father, grandmother, legal guardian."
+          }
           error={err?.guardian1_relationship} />
 
-        <RadioGroup legend="Would you like to add a second parent or guardian?"
-          name="has_guardian2"
-          options={[
-            { value: "yes", label: "Yes" },
-            { value: "no", label: "No" },
-          ]}
-          defaultValue={hasGuardian2 ? "yes" : "no"}
-          onChange={(v) => setHasGuardian2(v === "yes")} />
+        {!selfRelease && (
+          <RadioGroup legend="Would you like to add a second parent or guardian?"
+            name="has_guardian2"
+            options={[
+              { value: "yes", label: "Yes" },
+              { value: "no", label: "No" },
+            ]}
+            defaultValue={hasGuardian2 ? "yes" : "no"}
+            onChange={(v) => setHasGuardian2(v === "yes")} />
+        )}
 
-        {hasGuardian2 && (
+        {!selfRelease && hasGuardian2 && (
           <>
             <TextField label="Second guardian's first name" name="guardian2_first_name"
               defaultValue={values.guardian2.first_name} error={err?.guardian2_first_name} />
@@ -322,8 +331,10 @@ export function Step1Form({ data }: { data: Step1Data }) {
         {!data.complete && (
           <p className="mt-3 text-xs">
             Save progress keeps your answers without submitting. Submitting
-            Step 1 unlocks Steps 2–6 and generates your parent/guardian form
-            link. You can still edit Step 1 afterward.
+            Step 1 unlocks Steps 2–6 and generates your {selfRelease
+              ? "records release form"
+              : "parent/guardian form link"}. You can still edit Step 1
+            afterward.
           </p>
         )}
       </form>

@@ -1,6 +1,10 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
 import { formatDateTime } from "@/utils/dates";
-import { AVAILABILITY_OPTIONS, IEP_OPTIONS } from "@/utils/parent-options";
+import {
+  AVAILABILITY_OPTIONS,
+  IEP_OPTIONS,
+  SELF_RELATIONSHIP,
+} from "@/utils/parent-options";
 
 // Pure rendering, deliberately free of `server-only`, Supabase, and cookies:
 // this document goes to schools on Launchpad letterhead, so being able to
@@ -204,10 +208,17 @@ export async function renderReleasePdf(data: ReleaseData): Promise<Uint8Array> {
     size: 15,
     gap: 8,
   });
+  // An applicant 18+ may sign their own release; the record then names the
+  // student as the signer instead of a parent or guardian.
+  const selfSigned = data.parent.relationship === SELF_RELATIONSHIP;
   write(
-    "The parent or guardian named below has electronically signed the consent shown on this form " +
-      "through the Launchpad Philly application portal. Please release the records described in that " +
-      "consent to Launchpad Philly at the address above.",
+    selfSigned
+      ? "The student named below, who is 18 or older, has electronically signed the consent shown on this " +
+          "form through the Launchpad Philly application portal. Please release the records described in " +
+          "that consent to Launchpad Philly at the address above."
+      : "The parent or guardian named below has electronically signed the consent shown on this form " +
+          "through the Launchpad Philly application portal. Please release the records described in that " +
+          "consent to Launchpad Philly at the address above.",
     { size: 10, gap: 4 },
   );
 
@@ -222,12 +233,12 @@ export async function renderReleasePdf(data: ReleaseData): Promise<Uint8Array> {
   field("High school", shown(data.schoolName));
 
   // ---- Parent / guardian ------------------------------------------------
-  heading("Parent or guardian");
+  heading(selfSigned ? "Signer (the student)" : "Parent or guardian");
   field(
     "Name",
     `${shown(data.parent.firstName)} ${shown(data.parent.lastName)}`.replace(" —", ""),
   );
-  field("Relationship to student", shown(data.parent.relationship));
+  field("Relationship to student", selfSigned ? "Self (adult student)" : shown(data.parent.relationship));
   field("Email", shown(data.parent.email));
   field("Phone", shown(data.parent.phone));
 
@@ -272,7 +283,7 @@ export async function renderReleasePdf(data: ReleaseData): Promise<Uint8Array> {
   // ---- Other answers ----------------------------------------------------
   const availability = AVAILABILITY_OPTIONS.find((o) => o.value === data.availability)?.label;
   const iep = IEP_OPTIONS.find((o) => o.value === data.iep)?.label;
-  heading("Also reported by the parent or guardian");
+  heading(selfSigned ? "Also reported by the student" : "Also reported by the parent or guardian");
   field("Available for the summer program", shown(availability));
   if (data.availabilityConcerns) field("Noted conflicts", data.availabilityConcerns);
   field("Student has an IEP", shown(iep));

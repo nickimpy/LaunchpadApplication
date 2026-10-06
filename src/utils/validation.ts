@@ -77,11 +77,18 @@ export function choiceError(
   return null;
 }
 
+// Weighted GPAs run above 4.0 at many schools, so the ceiling is generous; it's
+// only there to catch typos (35 for 3.5), not to judge anyone's transcript.
+export const GPA_MIN = 0;
+export const GPA_MAX = 8;
+
 export function gpaError(value: string): string | null {
   if (!value) return "Enter your GPA.";
   const n = Number(value);
-  if (Number.isNaN(n)) return "Enter your GPA as a number, like 3.5.";
-  if (n < 0 || n > 6) return "Enter a GPA between 0 and 6.";
+  if (value.trim() === "" || Number.isNaN(n))
+    return "Enter your GPA as a number, like 3.5.";
+  if (n < GPA_MIN || n > GPA_MAX)
+    return `Enter a GPA between ${GPA_MIN} and ${GPA_MAX}.`;
   return null;
 }
 

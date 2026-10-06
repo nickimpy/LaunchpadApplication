@@ -6,7 +6,6 @@ import type { StepStatus } from "@/utils/steps";
 export type ApplicantFilters = {
   q: string;
   schoolId: string;
-  program: string;
   track: string;
   step: string;
   status: string;
@@ -49,7 +48,6 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
   return {
     q: one("q"),
     schoolId: one("school"),
-    program: one("program"),
     track: one("track"),
     step: one("step"),
     status: one("status"),
@@ -59,7 +57,7 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
 
 /** True when any filter is narrowing the list (drives the "clear" button). */
 export function hasActiveFilters(f: ApplicantFilters): boolean {
-  return Boolean(f.q || f.schoolId || f.program || f.track || (f.step && f.status));
+  return Boolean(f.q || f.schoolId || f.track || (f.step && f.status));
 }
 
 /**
@@ -154,7 +152,6 @@ export async function getApplicants(filters: ApplicantFilters): Promise<{
         .toLowerCase();
       if (!haystack.includes(q)) return false;
     }
-    if (filters.program && r.program !== filters.program) return false;
     if (filters.track && (r.track ?? "") !== filters.track) return false;
     if (filters.step && filters.status) {
       const step = Number(filters.step);

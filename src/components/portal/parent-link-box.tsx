@@ -93,3 +93,40 @@ export function ParentLinkBox({
     </div>
   );
 }
+
+/**
+ * For applicants 18+ who sign their own records release: instead of a link to
+ * hand a parent, a button that opens the same form with them as the signer. The
+ * URL carries the application's token, which is the form's only credential, so
+ * it is only ever rendered to the signed-in student it belongs to.
+ */
+export function SelfReleaseBox({
+  url,
+  complete = false,
+}: {
+  url: string;
+  complete?: boolean;
+}) {
+  return (
+    <div className="mb-6 rounded-lg border border-green-dark bg-green-tint3 p-6">
+      <h2 className="mb-3 text-lg font-bold">Your records release form</h2>
+      <p className="mb-3">
+        You&apos;re signing your own records release, so there&apos;s no link to
+        send anyone. Open the form, review it, and sign — it takes about five
+        minutes.
+      </p>
+      {complete ? (
+        <p className="font-bold">You&apos;ve already signed it — nothing more to do.</p>
+      ) : (
+        <a
+          href={url}
+          className="inline-block rounded-md bg-teal-dark px-6 py-3 text-base font-bold text-white
+            hover:brightness-110 focus:outline-none focus-visible:ring-2
+            focus-visible:ring-teal-dark focus-visible:ring-offset-2"
+        >
+          Open my records release form
+        </a>
+      )}
+    </div>
+  );
+}

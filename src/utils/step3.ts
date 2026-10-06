@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { getPortalData } from "@/utils/step-engine";
+import { syncEssayPrompts } from "@/utils/essay-prompts";
 import type { StepStatus } from "@/utils/steps";
 
 export type Step3Prompt = {
@@ -18,14 +19,16 @@ export type Step3Data = {
 };
 
 /**
- * Step 3's active prompts for the student's cycle, each with whatever they've
- * written so far. Prompt text is data (`essay_prompts`), never code, so the
- * full scaffolded question set can replace the beta placeholder without a
- * deploy. Returns null when logged out.
+ * Step 3's questions for the student's cycle, each with whatever they've
+ * written so far. The questions themselves are hard-coded (STEP3_QUESTIONS) and
+ * mirrored into `essay_prompts` rows here, since answers are keyed to a prompt
+ * id. Returns null when logged out.
  */
 export async function getStep3Data(): Promise<Step3Data | null> {
   const portal = await getPortalData();
   if (!portal) return null;
+
+  await syncEssayPrompts(portal.cycleId);
 
   const supabase = createClient(await cookies());
   const status = portal.steps.find((s) => s.number === 3)?.status ?? "not_started";

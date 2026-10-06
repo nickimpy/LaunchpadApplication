@@ -4,18 +4,19 @@ import { getPortalData } from "@/utils/step-engine";
 import { getStep1Data } from "@/utils/step1";
 import { getStep3Data } from "@/utils/step3";
 import { getC2LUrl, getStepStaffNote } from "@/utils/c2l";
-import { C2L_COPY, isC2LStep } from "@/utils/c2l-options";
+import { isC2LStep } from "@/utils/c2l-options";
 import { getMyReleasedDecision } from "@/utils/decision";
 import { DECISION_LABELS } from "@/utils/decision-options";
 import { formatDate } from "@/utils/dates";
 import { Step1Form } from "@/components/portal/step1-form";
 import { Step3Form } from "@/components/portal/step3-form";
 import { C2LReportForm } from "@/components/portal/c2l-report-form";
-import { ParentLinkBox } from "@/components/portal/parent-link-box";
+import { ParentLinkBox, SelfReleaseBox } from "@/components/portal/parent-link-box";
 import { getParentLinkUrl } from "@/utils/parent-link";
 import {
   STATUS_LABELS,
   TOTAL_STEPS,
+  fillCopy,
   formatDeadline,
   getStepMeta,
   type StepStatus,
@@ -60,11 +61,31 @@ const BADGE_STYLES: Record<StepStatus, string> = {
 async function Step2Panel({
   applicationId,
   complete,
+  selfRelease,
 }: {
   applicationId: string;
   complete: boolean;
+  selfRelease: boolean;
 }) {
   const url = await getParentLinkUrl(applicationId);
+
+  // 18+ and signing their own release: no link to pass along, just the form.
+  if (selfRelease) {
+    if (!url) {
+      return (
+        <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
+          <h2 className="mb-3 text-lg font-bold">
+            Finish Step 1 to open your records release form
+          </h2>
+          <p>
+            As soon as you submit Step 1, your records release form will be
+            ready for you to sign here.
+          </p>
+        </div>
+      );
+    }
+    return <SelfReleaseBox url={url} complete={complete} />;
+  }
 
   if (complete) {
     return (
@@ -117,13 +138,19 @@ async function Step2Panel({
  * released: RLS hides unreleased rows entirely, so there is nothing to guard
  * against here beyond rendering what comes back.
  */
-async function Step7Panel() {
+async function Step7Panel({ deadline }: { deadline: string | null }) {
   const decision = await getMyReleasedDecision();
 
   if (!decision) {
     return (
       <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
         <h2 className="mb-3 text-lg font-bold">Your decision will appear here</h2>
+        {deadline && (
+          <p className="mb-3 font-bold">
+            You will receive your admission decision by{" "}
+            {formatDeadline(deadline)}.
+          </p>
+        )}
         <p>
           There&apos;s nothing for you to do on this step. When your admissions
           decision is ready, we&apos;ll let you know and you can view it right
@@ -185,7 +212,9 @@ export default async function StepPage({ params }: { params: Params }) {
       </div>
 
       <p className="mb-3 font-bold">{ownerLine}</p>
-      <p className="mb-6">{step.summary}</p>
+      <p className="mb-6">
+        {fillCopy(step.summary, { contact_email: data.contactEmail })}
+      </p>
 
       {step.number === 1 ? (
         <Step1Form data={(await getStep1Data())!} />
@@ -205,27 +234,27 @@ export default async function StepPage({ params }: { params: Params }) {
         <C2LReportForm
           stepNumber={step.number}
           status={step.status}
-          url={await getC2LUrl(data.cycleId, C2L_COPY[step.number].urlKey)}
-          contactEmail={data.contactEmail}
+          url={await getC2LUrl(data.cycleId, step.number)}
           staffNote={await getStepStaffNote(data.applicationId, step.number)}
         />
       ) : step.number === 7 ? (
-        <Step7Panel />
+        <Step7Panel deadline={step.deadline} />
       ) : step.owner === "staff" ? (
         <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-lg font-bold">
             Launchpad staff update this step
           </h2>
           <p>
-            This step is marked complete by Launchpad staff after your
-            interview happens. We&apos;ll reach out with details about
-            scheduling.
+            A Launchpad staff member will reach out to you to schedule and
+            complete your interview. Check back here — this step is marked
+            complete by Launchpad staff once your interview is done.
           </p>
         </div>
-      ) : step.owner === "parent" ? (
+      ) : step.number === 2 ? (
         <Step2Panel
           applicationId={data.applicationId}
           complete={step.status === "complete"}
+          selfRelease={data.selfRelease}
         />
       ) : (
         <div className="rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">

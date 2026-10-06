@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { SELF_RELATIONSHIP } from "@/utils/parent-options";
 
 // Everything here runs with NO Supabase session — parents never have accounts.
 // The link token IS the access control, so every read goes through the
@@ -16,7 +17,11 @@ export type ParentFormData = {
   studentFirstName: string;
   dateOfBirth: string;
   schoolName: string;
-  program: "lightspeed" | "foundations" | null;
+  /**
+   * The applicant is 18+ and signing their own records release, so this is the
+   * "Records Release Form" with the student as signer rather than a parent form.
+   */
+  selfRelease: boolean;
   programInfo: string;
   consentText: string;
   summerLocation: string;
@@ -38,11 +43,12 @@ export type ParentFormLookup =
       submittedAt: string;
       studentFirstName: string;
       contactEmail: string;
+      selfRelease: boolean;
     }
   | { kind: "form"; data: ParentFormData };
 
 const asText = (v: unknown) => (typeof v === "string" ? v : "");
-const DEFAULT_CONTACT_EMAIL = "info@launchpadphilly.org";
+const DEFAULT_CONTACT_EMAIL = "apply@launchpadphilly.org";
 
 /**
  * Resolves a parent link token to everything the form needs. Returns
@@ -62,8 +68,8 @@ export async function loadParentForm(
   const { data: application, error } = await supabase
     .from("applications")
     .select(
-      `id, cycle_id, program, school_other,
-       students ( first_name, last_name, date_of_birth ),
+      `id, cycle_id, school_other,
+       students ( first_name, last_name, date_of_birth, email, phone ),
        schools ( name )`,
     )
     .eq("parent_link_token", token)
@@ -75,8 +81,19 @@ export async function loadParentForm(
     first_name: string;
     last_name: string;
     date_of_birth: string;
+    email: string | null;
+    phone: string | null;
   } | null;
   if (!student) return { kind: "not_found" };
+
+  // Its own query so the parent form keeps working if this newer column isn't
+  // in the database yet — an error just means "a parent is signing".
+  const { data: releaseRow } = await supabase
+    .from("applications")
+    .select("self_release")
+    .eq("id", application.id)
+    .maybeSingle();
+  const selfRelease = Boolean(releaseRow?.self_release);
 
   const [{ data: submission }, { data: settingRows }, { data: guardian }] =
     await Promise.all([
@@ -109,10 +126,10 @@ export async function loadParentForm(
       submittedAt: submission.signed_at as string,
       studentFirstName: student.first_name,
       contactEmail,
+      selfRelease,
     };
   }
 
-  const program = (application.program as ParentFormData["program"]) ?? null;
   const school = application.schools as unknown as { name: string } | null;
 
   return {
@@ -123,19 +140,26 @@ export async function loadParentForm(
       studentFirstName: student.first_name,
       dateOfBirth: student.date_of_birth,
       schoolName: school?.name || application.school_other || "",
-      program,
-      programInfo: asText(
+      selfRelease,
+      programInfo: asText(settings.get("program_info_foundations")),
+      consentText: asText(
         settings.get(
-          program === "lightspeed"
-            ? "program_info_lightspeed"
-            : "program_info_foundations",
+          selfRelease ? "student_release_consent_text" : "parent_form_consent_text",
         ),
       ),
-      consentText: asText(settings.get("parent_form_consent_text")),
       summerLocation: asText(settings.get("summer_location")),
       summerDates: asText(settings.get("summer_dates")),
       contactEmail,
-      guardianPrefill: guardian
+      guardianPrefill: selfRelease
+        ? {
+            // The student is the signer: prefill from their own record.
+            first_name: student.first_name,
+            last_name: student.last_name,
+            email: student.email ?? "",
+            phone: student.phone ?? "",
+            relationship: SELF_RELATIONSHIP,
+          }
+        : guardian
         ? {
             first_name: guardian.first_name ?? "",
             last_name: guardian.last_name ?? "",

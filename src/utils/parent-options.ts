@@ -32,6 +32,13 @@ export type ParentFormState = {
   values?: ParentFormValues;
 };
 
+/**
+ * Stored as the signer's relationship when an applicant 18+ signs their own
+ * records release, so the record (and the PDF) can say so without a schema
+ * change. The parent_relationship column is NOT NULL, hence a real value.
+ */
+export const SELF_RELATIONSHIP = "Self (student)";
+
 export const WANTS_INFO_OPTIONS = [
   { value: "yes", label: "Yes, please!" },
   { value: "no", label: "No thanks, take me to the form" },

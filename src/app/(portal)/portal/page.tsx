@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getPortalData } from "@/utils/step-engine";
 import { TOTAL_STEPS, formatDeadline } from "@/utils/steps";
+import { PortalHero } from "@/components/portal/portal-hero";
 
 export const metadata: Metadata = { title: "Your application — Launchpad" };
 
@@ -24,9 +25,9 @@ export default async function PortalHome() {
 
   return (
     <>
-      <h1 className="mb-3 text-2xl font-bold">Welcome, {name}!</h1>
+      <PortalHero name={name} />
       <p className="mb-6">
-        This is your application to Launchpad for the {data.cycleName} cycle.
+        This is your application for Launchpad&apos;s {data.cohortLabel} cohort.
         Work through the steps at your own pace — you can save and come back
         anytime, and you can update a step even after you submit it.
       </p>

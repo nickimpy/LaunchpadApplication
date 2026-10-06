@@ -46,12 +46,21 @@ export function AuthErrorDetail() {
     );
   }
 
+  // No recognised error code (e.g. the link was opened in a different browser
+  // than the one that started signup). Same advice: the address is very likely
+  // confirmed already, so logging in comes before requesting anything new.
   return (
     <>
-      <h1 className="mb-3 text-xl font-bold">This link didn&apos;t work</h1>
+      <h1 className="mb-3 text-xl font-bold">
+        We couldn&apos;t sign you in from that link
+      </h1>
+      <p className="mb-3">
+        If you just confirmed your email, you&apos;re all set —{" "}
+        <strong>try logging in first.</strong>
+      </p>
       <p className="mb-6">
-        It may have expired or already been used. Request a fresh one and try
-        again.
+        If logging in says your email isn&apos;t confirmed yet, or the link
+        expired, request a fresh one below.
       </p>
     </>
   );

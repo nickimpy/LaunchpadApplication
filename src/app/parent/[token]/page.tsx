@@ -28,6 +28,7 @@ export default async function ParentFormPage({ params }: { params: Params }) {
       <ParentFormComplete
         studentFirstName={result.studentFirstName}
         contactEmail={result.contactEmail}
+        selfRelease={result.selfRelease}
       />
     );
   }

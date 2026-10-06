@@ -19,6 +19,10 @@ export function TextField({
   optional,
   hint,
   readOnly,
+  min,
+  max,
+  step,
+  inputMode,
 }: {
   label: string;
   name: string;
@@ -29,6 +33,10 @@ export function TextField({
   optional?: boolean;
   hint?: string;
   readOnly?: boolean;
+  min?: number;
+  max?: number;
+  step?: number | "any";
+  inputMode?: "decimal" | "numeric" | "tel" | "email" | "text";
 }) {
   const errorId = error ? `${name}-error` : undefined;
   const hintId = hint ? `${name}-hint` : undefined;
@@ -53,6 +61,10 @@ export function TextField({
         autoComplete={autoComplete}
         required={!optional}
         readOnly={readOnly}
+        min={min}
+        max={max}
+        step={step}
+        inputMode={inputMode}
         aria-invalid={error ? true : undefined}
         aria-describedby={
           [errorId, hintId].filter(Boolean).join(" ") || undefined
@@ -369,7 +381,9 @@ const PREFERENCE_LABELS: Record<
 
 export function NotificationPreferenceField({
   error,
-  defaultValue = "email",
+  // Both is the default: applicants miss email, and a text is the nudge that
+  // gets a parent form signed. They can still choose either one alone.
+  defaultValue = "both",
 }: {
   error?: string;
   defaultValue?: string;

@@ -8,6 +8,7 @@ import {
   type C2LStepNumber,
 } from "@/utils/c2l-options";
 import { Alert, SubmitButton } from "@/components/forms";
+import { RichInline } from "@/components/rich-text";
 import type { StepStatus } from "@/utils/steps";
 
 /**
@@ -19,13 +20,11 @@ export function C2LReportForm({
   stepNumber,
   status,
   url,
-  contactEmail,
   staffNote,
 }: {
   stepNumber: C2LStepNumber;
   status: StepStatus;
   url: string;
-  contactEmail: string;
   staffNote: string;
 }) {
   const [state, action] = useActionState<C2LState, FormData>(
@@ -66,34 +65,22 @@ export function C2LReportForm({
         <h2 className="mb-3 text-lg font-bold">What to do</h2>
         <ol className="mb-6 list-decimal space-y-3 pl-6">
           {copy.instructions.map((line) => (
-            <li key={line}>{line}</li>
+            <li key={line}>
+              <RichInline text={line} />
+            </li>
           ))}
         </ol>
 
-        {url ? (
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block rounded-md bg-teal-dark px-3 py-3 text-base font-bold
-              text-white hover:brightness-110 focus:outline-none focus-visible:ring-2
-              focus-visible:ring-teal-dark focus-visible:ring-offset-2"
-          >
-            {copy.linkLabel} (opens in a new tab)
-          </a>
-        ) : (
-          <p className="text-xs">
-            We&apos;ll post the C2LPHL link here as soon as it&apos;s
-            available. In the meantime, email{" "}
-            <a
-              className="text-teal-dark underline"
-              href={`mailto:${contactEmail}`}
-            >
-              {contactEmail}
-            </a>{" "}
-            if you need it sooner.
-          </p>
-        )}
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block rounded-md bg-teal-dark px-3 py-3 text-base font-bold
+            text-white hover:brightness-110 focus:outline-none focus-visible:ring-2
+            focus-visible:ring-teal-dark focus-visible:ring-offset-2"
+        >
+          {copy.linkLabel} (opens in a new tab)
+        </a>
       </div>
 
       {verified ? (

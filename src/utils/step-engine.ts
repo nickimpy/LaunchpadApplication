@@ -10,6 +10,7 @@ import {
   type StepView,
   isStepLocked,
   getStepMeta,
+  withSelfRelease,
   studentAllowedStatuses,
 } from "@/utils/steps";
 
@@ -23,7 +24,11 @@ export type PortalData = {
   applicationId: string;
   cycleId: string;
   cycleName: string;
+  /** Public name of the cohort being recruited, e.g. "2027-28". */
+  cohortLabel: string;
   contactEmail: string;
+  /** 18+ applicant signing their own records release (Step 2 becomes theirs). */
+  selfRelease: boolean;
   steps: StepView[];
   completedCount: number;
 };
@@ -113,16 +118,23 @@ export const getPortalData = cache(async (): Promise<PortalData | null> => {
     .from("cycle_settings")
     .select("key, value")
     .eq("cycle_id", cycle.id)
-    .in("key", ["step_deadlines", "contact_email"]);
+    .in("key", ["step_deadlines", "contact_email", "cohort_label"]);
   const settings = new Map(settingRows?.map((r) => [r.key, r.value]) ?? []);
   const deadlines = (settings.get("step_deadlines") ?? {}) as Record<
     string,
     string
   >;
   const contactEmail =
-    typeof settings.get("contact_email") === "string"
+    typeof settings.get("contact_email") === "string" &&
+    settings.get("contact_email")
       ? (settings.get("contact_email") as string)
-      : "info@launchpadphilly.org";
+      : "apply@launchpadphilly.org";
+  // The cycle's own name ("2026-2027") is the application cycle; applicants
+  // care which cohort they'd be joining, which starts the following summer.
+  const cohortLabel =
+    typeof settings.get("cohort_label") === "string" && settings.get("cohort_label")
+      ? (settings.get("cohort_label") as string)
+      : cycle.name;
 
   const statusByStep = new Map<number, StepStatus>(
     application.step_progress.map((row: { step_number: number; status: StepStatus }) => [
@@ -132,12 +144,25 @@ export const getPortalData = cache(async (): Promise<PortalData | null> => {
   );
   const step1Status = statusByStep.get(1) ?? "not_started";
 
-  const steps: StepView[] = STEPS.map((meta) => ({
-    ...meta,
-    status: statusByStep.get(meta.number) ?? "not_started",
-    locked: isStepLocked(meta.number, step1Status),
-    deadline: deadlines[String(meta.number)] ?? null,
-  }));
+  // Its own query on purpose: the portal shell (sidebar on every page) must
+  // keep working if this newer column isn't in the database yet, so an error
+  // here just means "not self-releasing" instead of taking the whole portal down.
+  const { data: releaseRow } = await supabase
+    .from("applications")
+    .select("self_release")
+    .eq("id", application.id)
+    .maybeSingle();
+  const selfRelease = Boolean(releaseRow?.self_release);
+
+  const steps: StepView[] = STEPS.map((base) => {
+    const meta = selfRelease ? withSelfRelease(base) : base;
+    return {
+      ...meta,
+      status: statusByStep.get(meta.number) ?? "not_started",
+      locked: isStepLocked(meta.number, step1Status),
+      deadline: deadlines[String(meta.number)] ?? null,
+    };
+  });
 
   return {
     userId: user.id,
@@ -145,7 +170,9 @@ export const getPortalData = cache(async (): Promise<PortalData | null> => {
     applicationId: application.id,
     cycleId: cycle.id,
     cycleName: cycle.name,
+    cohortLabel,
     contactEmail,
+    selfRelease,
     steps,
     completedCount: steps.filter((s) => s.status === "complete").length,
   };

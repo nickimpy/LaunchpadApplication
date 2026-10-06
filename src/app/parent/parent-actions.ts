@@ -21,6 +21,7 @@ import {
 import {
   AVAILABILITY_VALUES,
   IEP_VALUES,
+  SELF_RELATIONSHIP,
   type ParentFormState,
   type ParentFormValues,
 } from "@/utils/parent-options";
@@ -69,6 +70,16 @@ export async function submitParentForm(
 
   const applicationId = application.id as string;
 
+  // Applicants 18+ may sign their own records release. Read from the database,
+  // never from the form: the posted relationship is overridden below. (Own
+  // query so a missing column degrades to "a parent is signing".)
+  const { data: releaseRow } = await supabase
+    .from("applications")
+    .select("self_release")
+    .eq("id", applicationId)
+    .maybeSingle();
+  const selfRelease = Boolean(releaseRow?.self_release);
+
   // Cheap pre-check so a revisit doesn't waste a storage upload. The real
   // race guard is the unique constraint, handled at the insert below.
   const { data: existing } = await supabase
@@ -87,7 +98,9 @@ export async function submitParentForm(
     comments: field(formData, "comments"),
     parent_first_name: field(formData, "parent_first_name"),
     parent_last_name: field(formData, "parent_last_name"),
-    parent_relationship: field(formData, "parent_relationship"),
+    parent_relationship: selfRelease
+      ? SELF_RELATIONSHIP
+      : field(formData, "parent_relationship"),
     parent_email: field(formData, "parent_email"),
     parent_phone: field(formData, "parent_phone"),
     signature_typed_name: field(formData, "signature_typed_name"),
@@ -108,7 +121,9 @@ export async function submitParentForm(
     "availability_concerns",
     availabilityConcernsError(v.availability, v.availability_concerns),
   );
-  if (v.iep) set("iep", choiceError(v.iep, IEP_VALUES, "an IEP answer"));
+  // Required: "Prefer not to disclose" is its own answer, so there's no reason
+  // to allow a blank on top of it.
+  set("iep", choiceError(v.iep, IEP_VALUES, "an IEP answer"));
   set("parent_first_name", parentRequiredError(v.parent_first_name, "your first name"));
   set("parent_last_name", parentRequiredError(v.parent_last_name, "your last name"));
   set(
@@ -139,7 +154,10 @@ export async function submitParentForm(
     .from("cycle_settings")
     .select("value")
     .eq("cycle_id", application.cycle_id)
-    .eq("key", "parent_form_consent_text")
+    .eq(
+      "key",
+      selfRelease ? "student_release_consent_text" : "parent_form_consent_text",
+    )
     .maybeSingle();
   const consentText =
     typeof consentRow?.value === "string" ? consentRow.value : "";

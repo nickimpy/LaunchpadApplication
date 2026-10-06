@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { isTooOldToEnroll } from "@/utils/eligibility";
+import { ageIneligibleText } from "@/utils/age-copy";
 import { getOrigin } from "@/utils/origin";
 import {
   dobError,
@@ -54,6 +56,9 @@ export async function updateProfile(
     if (message) errors[name] = message;
   }
   if (Object.keys(errors).length > 0) return { errors };
+
+  const { tooOld, maxAge } = await isTooOldToEnroll(values.date_of_birth);
+  if (tooOld) return { errors: { date_of_birth: ageIneligibleText(maxAge) } };
 
   const { error: updateError } = await supabase
     .from("students")

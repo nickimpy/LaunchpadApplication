@@ -6,6 +6,7 @@ import {
   sendPasswordReset,
   type ResetRequestState,
 } from "../forgot-password/actions";
+import { GENERAL_INFO_EMAIL, LIFTOFF_URL } from "@/utils/age-copy";
 import {
   Alert,
   NotificationPreferenceField,
@@ -41,6 +42,37 @@ function DuplicateAccountNotice({ email }: { email: string }) {
           {state.error && <p className="mt-1 font-bold">{state.error}</p>}
         </form>
       )}
+    </Alert>
+  );
+}
+
+// Same wording as ageIneligibleText() in age-copy.ts, with real links.
+function AgeIneligibleNotice({ maxAge }: { maxAge: number }) {
+  return (
+    <Alert tone="error">
+      <p className="mb-3">
+        Launchpad 101 is only eligible for learners {maxAge} or younger upon
+        enrollment.
+      </p>
+      <p className="mb-3">
+        If you are {maxAge + 1} or {maxAge + 2} and interested in training,
+        consider applying for LiftOff at{" "}
+        <a className="font-bold text-teal-dark underline" href={LIFTOFF_URL}>
+          www.launchpadphilly.org/careers
+        </a>
+        .
+      </p>
+      <p>
+        If you are older than {maxAge + 2} and seeking training resources,
+        reach out to{" "}
+        <a
+          className="font-bold text-teal-dark underline"
+          href={`mailto:${GENERAL_INFO_EMAIL}`}
+        >
+          {GENERAL_INFO_EMAIL}
+        </a>
+        .
+      </p>
     </Alert>
   );
 }
@@ -95,6 +127,10 @@ export function SignupForm() {
           defaultValue={values.date_of_birth}
           error={state.errors?.date_of_birth}
         />
+        {/* Right under the field it explains, so it's on screen after submit. */}
+        {state.ageIneligible !== undefined && (
+          <AgeIneligibleNotice maxAge={state.ageIneligible} />
+        )}
         <TextField
           label="Phone number"
           name="phone"

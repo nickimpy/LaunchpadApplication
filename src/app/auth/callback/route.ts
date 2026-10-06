@@ -6,8 +6,8 @@ import { createClient } from "@/utils/supabase/server";
 // Supabase's /auth/v1/verify endpoint, which confirms the token server-side
 // and redirects here with ?code= (PKCE). We exchange it for a session.
 //
-// (When custom SMTP + branded templates land in Phase 9, the token_hash
-// flow via /auth/confirm can replace this and also work cross-device.)
+// (Once the email templates point at /auth/confirm — see CLAUDE.md — that flow
+// replaces this one and also works cross-device.)
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -29,6 +29,14 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.redirect(new URL(next, origin));
     }
+
+    // Supabase only redirects here with a `code` AFTER it has already verified
+    // the link, so a failed exchange almost always means the verification worked
+    // but this browser can't finish signing in (the PKCE verifier cookie lives
+    // in the browser that started signup — Gmail's in-app browser, or a phone
+    // when signup happened on a laptop). The account IS confirmed, so send them
+    // to log in rather than to a "this link didn't work" dead end.
+    return NextResponse.redirect(new URL("/login?confirmed=1", origin));
   }
 
   return NextResponse.redirect(new URL("/auth/auth-error", origin));

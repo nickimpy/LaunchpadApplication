@@ -6,7 +6,14 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getPortalData, setStepStatus } from "@/utils/step-engine";
 import { field, type FieldErrors } from "@/utils/validation";
-import { responseField, type Step3State } from "@/utils/step3-options";
+import { syncEssayPrompts } from "@/utils/essay-prompts";
+import {
+  countWords,
+  responseField,
+  STEP3_MAX_WORDS,
+  STEP3_MIN_WORDS,
+  type Step3State,
+} from "@/utils/step3-options";
 
 const SAVE_FAILED = "We couldn't save your answers. Please try again.";
 const NO_PROMPTS =
@@ -34,8 +41,10 @@ export async function saveStep3(
   const wasComplete =
     portal.steps.find((s) => s.number === 3)?.status === "complete";
 
-  // The prompt list comes from the database, never from the submitted form, so
-  // a client can't invent, skip, or reorder questions.
+  // The prompt list comes from the database (kept in step with the hard-coded
+  // questions), never from the submitted form, so a client can't invent, skip,
+  // or reorder questions.
+  await syncEssayPrompts(portal.cycleId);
   const { data: prompts, error: promptErr } = await supabase
     .from("essay_prompts")
     .select("id")
@@ -50,11 +59,21 @@ export async function saveStep3(
     values[p.id as string] = field(formData, responseField(p.id as string));
   }
 
+  // Every answer must fit the word window. The ceiling is checked on a plain
+  // save too (nobody should park a 600-word answer they'll have to cut later);
+  // the floor only matters once they submit, since a draft is naturally short.
   const errors: FieldErrors = {};
-  if (intent === "submit") {
-    for (const p of prompts) {
-      if (!values[p.id as string]) {
-        errors[responseField(p.id as string)] = "Please answer this question.";
+  for (const p of prompts) {
+    const key = responseField(p.id as string);
+    const text = values[p.id as string];
+    const words = countWords(text);
+    if (words > STEP3_MAX_WORDS) {
+      errors[key] = `Please keep this to ${STEP3_MAX_WORDS} words or fewer — you're at ${words}.`;
+    } else if (intent === "submit") {
+      if (!text) {
+        errors[key] = "Please answer this question.";
+      } else if (words < STEP3_MIN_WORDS) {
+        errors[key] = `Please write at least ${STEP3_MIN_WORDS} words — you're at ${words}.`;
       }
     }
   }

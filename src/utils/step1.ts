@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getOrigin } from "@/utils/origin";
 import { getPortalData } from "@/utils/step-engine";
 import type { StepStatus } from "@/utils/steps";
+import { isAdult } from "@/utils/age";
 import type { ProgramAnswers } from "@/utils/step1-options";
 
 export type GuardianValues = {
@@ -40,8 +41,7 @@ export type Step1Values = {
   gpa: string;
   graduation_year: string;
   referral_source: string;
-  // Program
-  program: string;
+  // Pathway interest + plans after high school
   program_answers: ProgramAnswers;
   // Demographics (funder reporting only)
   gender: string;
@@ -53,7 +53,10 @@ export type Step1Values = {
   household_income: string;
   household_size: string;
   parent_college: string;
-  // Guardians
+  // Records release: "yes" = the (18+) student signs their own, "no" = a
+  // parent/guardian does (the default). Only meaningful for adults.
+  self_release: string;
+  // Guardians (an optional emergency contact for adults who sign for themselves)
   guardian1: GuardianValues;
   has_guardian2: boolean;
   guardian2: GuardianValues;
@@ -65,7 +68,8 @@ export type Step1Data = {
   complete: boolean;
   contactEmail: string;
   schools: { id: string; name: string }[];
-  programInfo: { lightspeed: string; foundations: string };
+  /** 18 or older today, so they may authorize the release of their own records. */
+  isAdult: boolean;
   parentLinkUrl: string | null;
   values: Step1Values;
 };
@@ -73,8 +77,7 @@ export type Step1Data = {
 /**
  * Loads everything the Step 1 form needs to render: the student's saved
  * answers (application + demographics + guardians + personal fields), the
- * schools dropdown, the admin-editable program info copy, and the parent
- * form link once it has been generated. Returns null when logged out.
+ * schools dropdown, and the parent form link once it has been generated. Returns null when logged out.
  */
 export async function getStep1Data(): Promise<Step1Data | null> {
   const portal = await getPortalData();
@@ -90,17 +93,16 @@ export async function getStep1Data(): Promise<Step1Data | null> {
     { data: demographics },
     { data: guardians },
     { data: schools },
-    { data: settingRows },
   ] = await Promise.all([
     supabase
       .from("students")
-      .select("first_name, last_name, preferred_name, email, phone")
+      .select("first_name, last_name, preferred_name, email, phone, date_of_birth")
       .eq("id", portal.userId)
       .maybeSingle(),
     supabase
       .from("applications")
       .select(
-        "street, street_2, city, state, zip, school_id, school_other, gpa, graduation_year, referral_source, program, program_answers, parent_link_token, parent_link_generated_at",
+        "street, street_2, city, state, zip, school_id, school_other, gpa, graduation_year, referral_source, program_answers, self_release, parent_link_token, parent_link_generated_at",
       )
       .eq("id", applicationId)
       .maybeSingle(),
@@ -117,14 +119,7 @@ export async function getStep1Data(): Promise<Step1Data | null> {
       .eq("application_id", applicationId)
       .order("position"),
     supabase.from("schools").select("id, name").eq("is_active", true).order("name"),
-    supabase
-      .from("cycle_settings")
-      .select("key, value")
-      .in("key", ["program_info_lightspeed", "program_info_foundations"]),
   ]);
-
-  const settings = new Map(settingRows?.map((r) => [r.key, r.value]) ?? []);
-  const asText = (v: unknown) => (typeof v === "string" ? v : "");
 
   const g1 = guardians?.find((g) => g.position === 1);
   const g2 = guardians?.find((g) => g.position === 2);
@@ -153,10 +148,7 @@ export async function getStep1Data(): Promise<Step1Data | null> {
     complete: status === "complete",
     contactEmail: portal.contactEmail,
     schools: schools ?? [],
-    programInfo: {
-      lightspeed: asText(settings.get("program_info_lightspeed")),
-      foundations: asText(settings.get("program_info_foundations")),
-    },
+    isAdult: student?.date_of_birth ? isAdult(student.date_of_birth) : false,
     parentLinkUrl,
     values: {
       first_name: student?.first_name ?? "",
@@ -174,7 +166,6 @@ export async function getStep1Data(): Promise<Step1Data | null> {
       gpa: application?.gpa != null ? String(application.gpa) : "",
       graduation_year: application?.graduation_year ?? "",
       referral_source: application?.referral_source ?? "",
-      program: application?.program ?? "",
       program_answers: (application?.program_answers as ProgramAnswers) ?? {},
       gender: demographics?.gender ?? "",
       gender_other: demographics?.gender_other ?? "",
@@ -188,6 +179,7 @@ export async function getStep1Data(): Promise<Step1Data | null> {
           ? String(demographics.household_size)
           : "",
       parent_college: demographics?.parent_college ?? "",
+      self_release: application?.self_release ? "yes" : "no",
       guardian1: toGuardian(g1),
       has_guardian2: Boolean(g2),
       guardian2: toGuardian(g2),

@@ -32,15 +32,16 @@ export const GRADUATION_YEARS = [
   "2028",
 ] as const;
 
-// Juniors (class of 2028) never see Lightspeed — they go straight to
-// Foundations (PRD conditional rules 3 & 4). Class of 2027 are rising seniors
-// and can choose either program.
-export const JUNIOR_GRAD_YEARS: readonly string[] = ["2028"];
-
-export const PROGRAMS = [
-  { value: "lightspeed", label: "Launchpad Lightspeed" },
-  { value: "foundations", label: "Launchpad Foundations" },
-] as const;
+// Launchpad now takes applications for Foundations only. Applicants who will
+// graduate in 2027 or earlier are in college (or working) by the time the
+// program starts, so those are the classes the college-schedule warning
+// applies to; class of 2028 are rising seniors with time before college.
+export const COLLEGE_CONFLICT_GRAD_YEARS: readonly string[] = [
+  "Before 2025",
+  "2025",
+  "2026",
+  "2027",
+];
 
 // --- Demographics (funder reporting only) -----------------------------------
 
@@ -94,55 +95,27 @@ export const PARENT_COLLEGE_OPTIONS = [
 
 export const PARENT_COLLEGE_VALUES = PARENT_COLLEGE_OPTIONS.map((o) => o.value);
 
-// --- Lightspeed questions (seniors/graduates who pick Lightspeed) ------------
-
-export const LS_GRAD_STATUS_OPTIONS = [
-  "I am currently a High School Senior on track to graduate in Spring 2026",
-  "I have already graduated high school or obtained my GED",
-] as const;
-
-export const LS_WORK_AUTH_OPTIONS = [
-  "I currently have legal work authorization to work in the US",
-  "I have applied for legal work authorization to work in the US",
-  "I do not have legal work authorization to work in the US",
-] as const;
-
-export const LS_SKILLS_OPTIONS = [
-  "Python",
-  "HTML, CSS",
-  "Javascript",
-  "Git/GitHub",
-  "SQL/databases",
-  "API usage and integration",
-  "Figma or other wireframing software",
-  "ChatGPT or other LLMs",
-  "React",
-  "None of the above",
-] as const;
-
-export const LS_EXPERIENCE_OPTIONS = [
-  "Taken a technology course in school",
-  "Taken a coding course in school",
-  "Taken AP Computer Science",
-  "Taken a college coding course",
-  "Completed an online coding course",
-  "Participated in a technology training program",
-  "Participated in a workforce development program",
-  "Worked part-time",
-  "Worked full-time",
-  "None of the above",
-] as const;
-
-export const LS_ACADEMIC_YEAR_PLAN_OPTIONS = [
-  "I will have no other commitments",
-  "I will be working part-time",
-  "I will be working full-time",
-  "I will be attending college part-time",
-  "I will be attending college full-time",
-  "I will be both attending college and working",
-] as const;
-
 // --- Foundations questions ---------------------------------------------------
+
+/** The two pathways, shown above the pathway-interest question. */
+export const PATHWAYS = [
+  {
+    name: "Software Engineering",
+    points: [
+      "Develop and practice AI and Python coding skills.",
+      "Explore AI-powered web, app, and product design.",
+      "Earn the PCEP-30 Python Certification.",
+    ],
+  },
+  {
+    name: "Entrepreneurial Leadership",
+    points: [
+      "Build and launch your own business.",
+      "Pitch solutions to business industry leaders.",
+      "Get certified by the Project Management Institute.",
+    ],
+  },
+] as const;
 
 export const FND_PATHWAY_OPTIONS = [
   "Entrepreneurial Leadership Only - no interest in tech/coding",
@@ -152,36 +125,43 @@ export const FND_PATHWAY_OPTIONS = [
   "Tech/Coding Only - no interest in entrepreneurial leadership",
 ] as const;
 
-export const FND_TECH_INTEREST_OPTIONS = [
-  { value: "1", label: "1 — I have no interest in pursuing a career in tech" },
-  { value: "2", label: "2" },
-  { value: "3", label: "3" },
-  { value: "4", label: "4" },
-  { value: "5", label: "5 — I only want to pursue a career in tech" },
-] as const;
-
 export const FND_POST_HS_OPTIONS = [
   "I want to get a good job and work right after high school",
   "I want to take time off after high school but then get a degree",
   "I want to attend CCP/2-year college in Philly right after high school",
   "I want to attend a 4 year college in Philly right after high school",
   "I want to attend college NOT in Philly right after high school",
+  "I want to attend trade school right after high school",
 ] as const;
 
-// Selecting this Foundations post-HS plan triggers the (non-blocking) college
-// compatibility warning and flags the application for staff review.
-export const COLLEGE_WARNING_OPTION =
-  "I want to attend college NOT in Philly right after high school";
+// Choosing one of these (as a class of 2027 or earlier) triggers the
+// non-blocking college-schedule warning and flags the application for staff.
+export const COLLEGE_WARNING_OPTIONS: readonly string[] = [
+  "I want to attend a 4 year college in Philly right after high school",
+  "I want to attend college NOT in Philly right after high school",
+];
 
-// Keys used in applications.program_answers (jsonb).
+/** Whether the college-schedule warning applies to this grad year + plan. */
+export function needsCollegeWarning(gradYear: string, postHsPlan: string): boolean {
+  return (
+    COLLEGE_CONFLICT_GRAD_YEARS.includes(gradYear) &&
+    COLLEGE_WARNING_OPTIONS.includes(postHsPlan)
+  );
+}
+
+// Keys used in applications.program_answers (jsonb). Older rows may still
+// carry retired keys (Lightspeed answers, the 1-5 tech-interest scale); they
+// are left alone in the database and simply no longer collected or shown here.
 export type ProgramAnswers = {
-  ls_grad_status?: string;
-  ls_work_auth?: string;
-  ls_skills?: string[];
-  ls_experiences?: string[];
-  ls_courses_detail?: string;
-  ls_academic_year_plan?: string;
   fnd_pathway?: string;
-  fnd_tech_interest?: string;
   fnd_post_hs_plan?: string;
 };
+
+// --- Records release (18+) ---------------------------------------------------
+
+// Applicants who are 18 or older can authorize the release of their own records
+// instead of asking a parent or guardian to.
+export const RELEASE_SIGNER_OPTIONS = [
+  { value: "no", label: "My parent or guardian will sign it" },
+  { value: "yes", label: "I will sign it myself" },
+] as const;

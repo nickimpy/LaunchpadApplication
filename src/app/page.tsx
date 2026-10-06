@@ -38,8 +38,8 @@ export default function Home() {
       </div>
       <p className="max-w-md text-center text-xs">
         Questions? Reach out to{" "}
-        <a className="text-teal-dark underline" href="mailto:info@launchpadphilly.org">
-          info@launchpadphilly.org
+        <a className="text-teal-dark underline" href="mailto:apply@launchpadphilly.org">
+          apply@launchpadphilly.org
         </a>
         .
       </p>

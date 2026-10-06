@@ -254,7 +254,13 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
         </div>
 
         <div>
-          <Card title="Parent / guardian form (Step 2)">
+          <Card
+            title={
+              app.self_release
+                ? "Records release form (Step 2) — signed by the student (18+)"
+                : "Parent / guardian form (Step 2)"
+            }
+          >
             {parentSubmitted ? (
               <>
                 <dl>
@@ -305,7 +311,7 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
             )}
           </Card>
 
-          <Card title="Parent link">
+          <Card title={app.self_release ? "Records release link (student signs)" : "Parent link"}>
             <ParentLinkPanel
               applicationId={profile.applicationId}
               url={profile.parentLinkUrl}
@@ -313,9 +319,13 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
             />
           </Card>
 
-          <Card title="Guardian contacts">
+          <Card title={app.self_release ? "Emergency contact (optional)" : "Guardian contacts"}>
             {profile.guardians.length === 0 ? (
-              <p className="text-xs">No guardians on file yet.</p>
+              <p className="text-xs">
+                {app.self_release
+                  ? "No emergency contact on file."
+                  : "No guardians on file yet."}
+              </p>
             ) : (
               profile.guardians.map((g) => (
                 <GuardianForm

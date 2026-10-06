@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getOrigin } from "@/utils/origin";
 import { emailSendErrorMessage } from "@/utils/auth-errors";
 import { ensureStudentRecords } from "@/utils/provisioning";
+import { isTooOldToEnroll } from "@/utils/eligibility";
 import {
   dobError,
   emailError,
@@ -23,6 +24,8 @@ export type SignupState = {
   errors?: FieldErrors;
   values?: Record<string, string>;
   duplicate?: boolean;
+  /** Set (to the cycle's max age) when the date of birth is too old to enroll. */
+  ageIneligible?: number;
 };
 
 export async function signup(
@@ -55,6 +58,18 @@ export async function signup(
     if (message) errors[name] = message;
   }
   if (Object.keys(errors).length > 0) return { errors, values: safeValues };
+
+  // Eligibility is measured at enrollment (program start), not today. Checked
+  // before the duplicate lookup and before any account exists, so an applicant
+  // who is too old is told why instead of being created and left stranded.
+  const { tooOld, maxAge } = await isTooOldToEnroll(values.date_of_birth);
+  if (tooOld) {
+    return {
+      ageIneligible: maxAge,
+      errors: { date_of_birth: "This date of birth isn't eligible — see the note above." },
+      values: safeValues,
+    };
+  }
 
   // Duplicate check. Supabase's public API deliberately obfuscates whether an
   // email exists, so we check the students table with the service role.

@@ -3,7 +3,13 @@
 import { useActionState, useState } from "react";
 import { saveStep3 } from "@/app/(portal)/portal/steps/step3-actions";
 import type { Step3Data, Step3Prompt } from "@/utils/step3";
-import { responseField, type Step3State } from "@/utils/step3-options";
+import {
+  countWords,
+  responseField,
+  STEP3_MAX_WORDS,
+  STEP3_MIN_WORDS,
+  type Step3State,
+} from "@/utils/step3-options";
 import {
   ActionButton,
   Alert,
@@ -11,15 +17,7 @@ import {
   useStatusFocus,
 } from "@/components/forms";
 
-function countWords(value: string): number {
-  const trimmed = value.trim();
-  return trimmed ? trimmed.split(/\s+/).length : 0;
-}
-
-/**
- * One prompt. The word count is a live nicety, not a limit — the scaffolded
- * question set is still being written, so there's no minimum to enforce yet.
- */
+/** One question, with a live count against the required word window. */
 function PromptField({
   prompt,
   defaultValue,
@@ -38,11 +36,11 @@ function PromptField({
       defaultValue={defaultValue}
       error={error}
       onChange={(value) => setWords(countWords(value))}
-      hint={
+      hint={`Write ${STEP3_MIN_WORDS}–${STEP3_MAX_WORDS} words. ${
         words > 0
-          ? `${words} ${words === 1 ? "word" : "words"}`
-          : "Take your time — you can save and come back to this later."
-      }
+          ? `You're at ${words} ${words === 1 ? "word" : "words"}.`
+          : "You can save and come back to this later."
+      }`}
     />
   );
 }
