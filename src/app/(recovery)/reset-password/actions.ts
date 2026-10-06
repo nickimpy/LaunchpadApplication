@@ -31,8 +31,23 @@ export async function updatePassword(
     };
 
   const { error } = await supabase.auth.updateUser({ password });
-  if (error)
+  if (error) {
+    // Say what actually went wrong where we can: "try again" is no help to
+    // someone whose new password was rejected for a reason they can fix.
+    if (error.code === "same_password") {
+      return {
+        error:
+          "That's the same as your current password. Choose a different one.",
+      };
+    }
+    if (error.code === "weak_password") {
+      return {
+        error:
+          "That password is too easy to guess. Try a longer one, or mix in numbers and symbols.",
+      };
+    }
     return { error: "We couldn't update your password. Please try again." };
+  }
 
   redirect("/portal");
 }
