@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getAdminUser, logAdminAction } from "@/utils/admin";
+import { dbErrorMessage, type DbError } from "@/utils/db-errors";
 import { field } from "@/utils/validation";
 import {
   RUBRIC_CRITERIA,
@@ -16,7 +17,10 @@ import {
 } from "@/utils/interview-options";
 
 const DENIED = "You don't have permission to do that.";
-const FAILED = "That didn't save. Please try again.";
+
+/** Staff see why a write failed (permissions, missing migration, bad value). */
+const failed = (error: DbError, what: string) =>
+  dbErrorMessage(error, { audience: "staff", action: what });
 
 /**
  * Records (or updates) an interview: the 7-criterion rubric, pathway
@@ -102,7 +106,9 @@ export async function saveInterview(
     )
     .select("id")
     .single();
-  if (upsertErr || !interview) return { error: FAILED, values };
+  if (upsertErr) return { error: failed(upsertErr, "save the interview"), values };
+  if (!interview)
+    return { error: "The interview didn't save — refresh the page and try again.", values };
 
   // All 7 are validated above, so this always writes a full rubric.
   const { error: scoreErr } = await supabase.from("interview_scores").upsert(
@@ -114,7 +120,7 @@ export async function saveInterview(
     })),
     { onConflict: "interview_id,criterion" },
   );
-  if (scoreErr) return { error: FAILED, values };
+  if (scoreErr) return { error: failed(scoreErr, "save the rubric scores"), values };
 
   // Step 4 is staff-owned: setStepStatus() rejects it, so write directly.
   const now = new Date().toISOString();
@@ -128,7 +134,12 @@ export async function saveInterview(
     })
     .eq("application_id", applicationId)
     .eq("step_number", 4);
-  if (stepErr) return { error: FAILED, values };
+  // The interview itself saved; only the step flag didn't.
+  if (stepErr)
+    return {
+      error: `The interview saved, but Step 4 couldn't be marked complete: ${failed(stepErr, "mark Step 4 complete")}`,
+      values,
+    };
 
   await logAdminAction({
     actor: admin,

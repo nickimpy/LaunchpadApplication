@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { authErrorMessage } from "@/utils/auth-errors";
+import { dbErrorMessage } from "@/utils/db-errors";
 import { isTooOldToEnroll } from "@/utils/eligibility";
 import { ageIneligibleText } from "@/utils/age-copy";
 import { getOrigin } from "@/utils/origin";
@@ -72,20 +75,50 @@ export async function updateProfile(
     })
     .eq("id", user.id);
   if (updateError)
-    return { errors: { form: "We couldn't save your changes. Please try again." } };
+    return {
+      errors: {
+        form: dbErrorMessage(updateError, {
+          audience: "student",
+          action: "save your profile changes",
+        }),
+      },
+    };
 
   // Changing the login email needs confirmation: Supabase emails the NEW
   // address a link (via /auth/confirm, type=email_change) and the change only
   // takes effect once it's clicked. The students.email row is synced then.
   let emailPending: string | undefined;
   if (values.email !== (user.email ?? "").toLowerCase()) {
+    // Check first: Supabase can be vague about an address that's already
+    // registered, and applicants need to hear plainly that it's taken. Uses the
+    // service role because RLS only lets a student see their own row.
+    const { data: taken } = await createAdminClient()
+      .from("students")
+      .select("id")
+      .eq("email", values.email)
+      .neq("id", user.id)
+      .maybeSingle();
+    if (taken) {
+      return {
+        errors: {
+          email:
+            "That email is already used by another Launchpad account. Use a different email, or log in to that account instead.",
+        },
+      };
+    }
+
     const { error: emailErr } = await supabase.auth.updateUser(
       { email: values.email },
       { emailRedirectTo: `${await getOrigin()}/auth/callback?next=/profile` },
     );
     if (emailErr)
       return {
-        errors: { email: "We couldn't start the email change. Try again." },
+        errors: {
+          email: authErrorMessage(
+            emailErr,
+            "We couldn't send the confirmation email to that address. Check it for typos and try again.",
+          ),
+        },
       };
     emailPending = values.email;
   }

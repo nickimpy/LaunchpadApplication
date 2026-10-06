@@ -8,6 +8,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { getPortalData } from "@/utils/step-engine";
 import { getOrigin } from "@/utils/origin";
 import { getClientIp } from "@/utils/request-ip";
+import { dbErrorMessage, type DbError } from "@/utils/db-errors";
 import {
   field,
   choiceError,
@@ -29,8 +30,9 @@ import {
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const GENERIC_FAILURE =
-  "Something went wrong saving your form. Please try again, or email us if it keeps happening.";
+// Parents have no account and nobody to ask but us, so every failure names the
+// address to write to. The live value is a cycle setting; this is the fallback.
+const DEFAULT_CONTACT = "apply@launchpadphilly.org";
 const LINK_INVALID =
   "This form link is no longer valid. Ask your student to send you their current link.";
 
@@ -66,7 +68,20 @@ export async function submitParentForm(
     .select("id, cycle_id")
     .eq("parent_link_token", token.trim())
     .maybeSingle();
-  if (lookupError || !application) return { errors: { form: LINK_INVALID } };
+  // A database hiccup is not a bad link — don't send a parent off to chase a
+  // new link when the one they have is fine.
+  if (lookupError) {
+    return {
+      errors: {
+        form: dbErrorMessage(lookupError, {
+          audience: "parent",
+          action: "open your form",
+          contactEmail: DEFAULT_CONTACT,
+        }),
+      },
+    };
+  }
+  if (!application) return { errors: { form: LINK_INVALID } };
 
   const applicationId = application.id as string;
 
@@ -150,18 +165,37 @@ export async function submitParentForm(
   // --- consent snapshot ----------------------------------------------------
   // Re-read the live copy rather than trusting anything echoed back by the
   // client, so the stored snapshot is provably what we published.
-  const { data: consentRow } = await supabase
+  const consentKey = selfRelease
+    ? "student_release_consent_text"
+    : "parent_form_consent_text";
+  const { data: settingRows } = await supabase
     .from("cycle_settings")
-    .select("value")
+    .select("key, value")
     .eq("cycle_id", application.cycle_id)
-    .eq(
-      "key",
-      selfRelease ? "student_release_consent_text" : "parent_form_consent_text",
-    )
-    .maybeSingle();
-  const consentText =
-    typeof consentRow?.value === "string" ? consentRow.value : "";
-  if (!consentText) return { errors: { form: GENERIC_FAILURE }, values: v };
+    .in("key", [consentKey, "contact_email"]);
+  const setting = (key: string) => {
+    const value = settingRows?.find((r) => r.key === key)?.value;
+    return typeof value === "string" ? value : "";
+  };
+  const contactEmail = setting("contact_email") || DEFAULT_CONTACT;
+  const consentText = setting(consentKey);
+  const failed = (error: DbError, what: string) => ({
+    errors: {
+      form: dbErrorMessage(error, { audience: "parent", action: what, contactEmail }),
+    },
+    values: v,
+  });
+  if (!consentText) {
+    // Staff haven't published the consent wording for this cycle — nothing the
+    // signer can fix, so say so rather than inviting endless retries.
+    console.error("parent form: missing consent text", { consentKey, applicationId });
+    return {
+      errors: {
+        form: `This form can't be signed yet because its consent wording hasn't been set up on our end. Please email ${contactEmail} and we'll sort it out.`,
+      },
+      values: v,
+    };
+  }
 
   // --- signature image -----------------------------------------------------
   // One submission per application (unique FK), so a stable path is safe and
@@ -173,7 +207,15 @@ export async function submitParentForm(
       contentType: "image/png",
       upsert: true,
     });
-  if (uploadError) return { errors: { form: GENERIC_FAILURE }, values: v };
+  if (uploadError) {
+    console.error("parent form: signature upload failed", uploadError);
+    return {
+      errors: {
+        form: `We couldn't save your signature image. Please submit again — your answers are still here. If it keeps happening, email ${contactEmail}.`,
+      },
+      values: v,
+    };
+  }
 
   // --- store the submission ------------------------------------------------
   const { error: insertError } = await supabase
@@ -201,7 +243,7 @@ export async function submitParentForm(
   if (insertError) {
     // 23505 = unique violation: a concurrent submit (second tab) already won.
     // That's a success from this parent's point of view, not an error.
-    if (insertError.code !== "23505") return { errors: { form: GENERIC_FAILURE }, values: v };
+    if (insertError.code !== "23505") return failed(insertError, "save your form");
   }
 
   // --- flip Step 2 to complete --------------------------------------------
@@ -219,7 +261,16 @@ export async function submitParentForm(
     })
     .eq("application_id", applicationId)
     .eq("step_number", 2);
-  if (stepError) return { errors: { form: GENERIC_FAILURE }, values: v };
+  // The signed form IS stored at this point, so don't ask them to sign again.
+  if (stepError) {
+    console.error("parent form: stored, but Step 2 not marked complete", stepError);
+    return {
+      errors: {
+        form: `Your signed form was received, but we couldn't update the application's progress. You don't need to sign again — please email ${contactEmail} so we can fix it.`,
+      },
+      values: v,
+    };
+  }
 
   return { submitted: true };
 }
@@ -249,8 +300,17 @@ export async function regenerateParentLink(): Promise<{
     .select("parent_link_token")
     .maybeSingle();
 
-  if (error || !data) {
-    return { error: "Couldn't create a new link. Please try again." };
+  if (error) {
+    return {
+      error: dbErrorMessage(error, {
+        audience: "student",
+        action: "create a new link",
+        contactEmail: portal.contactEmail,
+      }),
+    };
+  }
+  if (!data) {
+    return { error: "Your application couldn't be found. Refresh the page and try again." };
   }
 
   revalidatePath("/portal", "layout");

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { isActiveAdmin } from "@/utils/admin";
 import { createClient } from "@/utils/supabase/server";
 import { getOrigin } from "@/utils/origin";
-import { emailSendErrorMessage } from "@/utils/auth-errors";
+import { authErrorMessage, emailSendErrorMessage } from "@/utils/auth-errors";
 import { emailError, field, passwordError } from "@/utils/validation";
 
 export type LoginState = {
@@ -30,7 +30,13 @@ export async function login(
     if (error.code === "email_not_confirmed")
       redirect(`/verify-email?email=${encodeURIComponent(email)}`);
     return {
-      error: "That email or password doesn't match. Please try again.",
+      // Rate limits, outages, a disabled account etc. each get their own
+      // message — telling someone their password is wrong when it isn't sends
+      // them off to reset a password that was fine.
+      error: authErrorMessage(
+        error,
+        "We couldn't log you in just now. Please try again in a moment.",
+      ),
       values: { email },
     };
   }

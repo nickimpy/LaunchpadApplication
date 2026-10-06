@@ -3,6 +3,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { ensureStudentRecords } from "@/utils/provisioning";
+import { dbErrorMessage } from "@/utils/db-errors";
 import type { NotificationPreference } from "@/utils/validation";
 import {
   STEPS,
@@ -211,5 +212,15 @@ export async function setStepStatus(
     })
     .eq("application_id", data.applicationId)
     .eq("step_number", stepNumber);
-  return error ? { error: error.message } : {};
+  // Never hand a student raw Postgres text ("new row violates row-level
+  // security policy…"); translate it.
+  return error
+    ? {
+        error: dbErrorMessage(error, {
+          audience: "student",
+          action: `update Step ${stepNumber}`,
+          contactEmail: data.contactEmail,
+        }),
+      }
+    : {};
 }

@@ -4,12 +4,18 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getAdminUser, logAdminAction } from "@/utils/admin";
+import { dbErrorMessage, type DbError } from "@/utils/db-errors";
 import { field } from "@/utils/validation";
 import { DECISION_VALUES, type DecisionState } from "@/utils/decision-options";
 import { isC2LStep } from "@/utils/c2l-options";
 
 const DENIED = "You don't have permission to do that.";
-const FAILED = "That didn't save. Please try again.";
+
+/** Staff see why a write failed (permissions, missing migration, bad value). */
+const failed = (error: DbError, what: string) =>
+  dbErrorMessage(error, { audience: "staff", action: what });
+// Only reachable from a stale or tampered form, so reloading is the fix.
+const STALE = "This page is out of date. Refresh it and try again.";
 
 export type VerifyState = { error?: string; success?: string };
 
@@ -44,8 +50,8 @@ export async function reviewC2LStep(
 ): Promise<VerifyState> {
   const admin = await getAdminUser();
   if (!admin) return { error: DENIED };
-  if (!isC2LStep(stepNumber)) return { error: FAILED };
-  if (!(outcome in OUTCOME_STATUS)) return { error: FAILED };
+  if (!isC2LStep(stepNumber)) return { error: STALE };
+  if (!(outcome in OUTCOME_STATUS)) return { error: STALE };
 
   // Flagging a problem without saying what it is leaves the student stuck.
   if (outcome === "incomplete" && !staffNote.trim()) {
@@ -76,13 +82,9 @@ export async function reviewC2LStep(
     })
     .eq("application_id", applicationId)
     .eq("step_number", stepNumber);
-  if (error) {
-    // The 'needs_attention' value and staff_note column arrive in migration
-    // 0008; say so plainly rather than showing a generic failure.
-    return {
-      error: `${FAILED} (If this keeps happening, migration 0008 may not be applied yet: ${error.message})`,
-    };
-  }
+  // A missing 'needs_attention' value or staff_note column (migration 0008)
+  // is reported as a missing database update by dbErrorMessage.
+  if (error) return { error: failed(error, "save the C2L review") };
 
   await logAdminAction({
     actor: admin,
@@ -139,7 +141,7 @@ export async function recordDecision(
     },
     { onConflict: "application_id" },
   );
-  if (error) return { error: FAILED };
+  if (error) return { error: failed(error, "record the decision") };
 
   await logAdminAction({
     actor: admin,
@@ -184,7 +186,7 @@ export async function releaseDecision(
     .from("decisions")
     .update({ released_at: new Date().toISOString(), released_by: admin.id })
     .eq("application_id", applicationId);
-  if (error) return { error: FAILED };
+  if (error) return { error: failed(error, "release the decision") };
 
   // Step 7 completes on release, not on recording: the step is the student's
   // view of the process, and nothing has happened for them until now.

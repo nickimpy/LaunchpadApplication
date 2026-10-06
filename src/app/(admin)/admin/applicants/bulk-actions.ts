@@ -4,11 +4,19 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getAdminUser, logAdminAction } from "@/utils/admin";
+import { dbErrorMessage, type DbError } from "@/utils/db-errors";
 import { field } from "@/utils/validation";
 import { DECISION_VALUES } from "@/utils/decision-options";
 import { BULK_ACTIONS, type BulkState } from "@/utils/bulk-options";
 
 const DENIED = "You don't have permission to do that.";
+
+/** A batch failed part-way: say how many went through, then why it stopped. */
+const stopped = (changed: number, error: DbError, what: string) =>
+  `Stopped after ${changed} ${changed === 1 ? "applicant" : "applicants"} were updated — the rest weren't changed. ${dbErrorMessage(
+    error,
+    { audience: "staff", action: what },
+  )}`;
 
 const ACTION_VALUES: readonly string[] = BULK_ACTIONS.map((a) => a.value);
 
@@ -79,9 +87,7 @@ export async function bulkApply(
         .eq("application_id", row.application_id)
         .eq("step_number", stepNumber);
       if (error) {
-        return {
-          error: `Stopped after ${changed} — ${error.message} (migration 0008 may not be applied yet)`,
-        };
+        return { error: stopped(changed, error, "update the C2L step") };
       }
       changed += 1;
       await logAdminAction({
@@ -105,7 +111,7 @@ export async function bulkApply(
         // undo this later.
         .update({ track, track_overridden: true })
         .eq("id", id);
-      if (error) return { error: `Stopped after ${changed} — ${error.message}` };
+      if (error) return { error: stopped(changed, error, "change the track") };
       changed += 1;
       await logAdminAction({
         actor: admin,
@@ -143,7 +149,7 @@ export async function bulkApply(
         },
         { onConflict: "application_id" },
       );
-      if (error) return { error: `Stopped after ${changed} — ${error.message}` };
+      if (error) return { error: stopped(changed, error, "record the decision") };
       changed += 1;
       await logAdminAction({
         actor: admin,

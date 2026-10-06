@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { getPortalData, setStepStatus } from "@/utils/step-engine";
 import { isC2LStep, type C2LState } from "@/utils/c2l-options";
 
-const GENERIC = "We couldn't update this step. Please try again.";
+// Only reachable through a tampered or stale form (a step number that isn't
+// 5 or 6), so it says to reload rather than "try again".
+const GENERIC =
+  "This page is out of date. Refresh it and try again.";
 const ALREADY_VERIFIED =
   "Launchpad staff have already verified this step, so it can't be changed here. Email us if something looks wrong.";
 

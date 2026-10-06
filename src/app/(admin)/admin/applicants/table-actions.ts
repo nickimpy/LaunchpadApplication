@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getAdminUser, logAdminAction } from "@/utils/admin";
+import { dbErrorMessage } from "@/utils/db-errors";
 
 export type InlineState = { error?: string; saved?: boolean };
 
@@ -20,7 +21,8 @@ export async function setTrack(
   formData: FormData,
 ): Promise<InlineState> {
   const admin = await getAdminUser();
-  if (!admin) return { error: "No permission." };
+  if (!admin)
+    return { error: "You don't have permission to change tracks. Log out and back in." };
 
   const raw = (formData.get("track") ?? "").toString();
   const track = raw === "A" || raw === "B" ? raw : null;
@@ -36,7 +38,8 @@ export async function setTrack(
     .from("applications")
     .update({ track, track_overridden: track !== null })
     .eq("id", applicationId);
-  if (error) return { error: "Didn't save." };
+  if (error)
+    return { error: dbErrorMessage(error, { audience: "staff", action: "change the track" }) };
 
   await logAdminAction({
     actor: admin,

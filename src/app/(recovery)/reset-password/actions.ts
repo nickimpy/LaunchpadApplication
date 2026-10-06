@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { passwordError } from "@/utils/validation";
+import { authErrorMessage } from "@/utils/auth-errors";
 
 export type ResetPasswordState = { error?: string };
 
@@ -31,23 +32,15 @@ export async function updatePassword(
     };
 
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) {
-    // Say what actually went wrong where we can: "try again" is no help to
-    // someone whose new password was rejected for a reason they can fix.
-    if (error.code === "same_password") {
-      return {
-        error:
-          "That's the same as your current password. Choose a different one.",
-      };
-    }
-    if (error.code === "weak_password") {
-      return {
-        error:
-          "That password is too easy to guess. Try a longer one, or mix in numbers and symbols.",
-      };
-    }
-    return { error: "We couldn't update your password. Please try again." };
-  }
+  // Say what actually went wrong (same as the old password, too weak, link
+  // expired…): "try again" is no help when the fix is a different password.
+  if (error)
+    return {
+      error: authErrorMessage(
+        error,
+        "We couldn't update your password. Please try again.",
+      ),
+    };
 
   redirect("/portal");
 }

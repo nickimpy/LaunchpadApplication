@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getPortalData, setStepStatus } from "@/utils/step-engine";
 import type { Step1Values } from "@/utils/step1";
 import { isAdult } from "@/utils/age";
+import { dbErrorMessage, type DbError } from "@/utils/db-errors";
 import {
   field,
   nameError,
@@ -237,6 +238,14 @@ export async function saveStep1(
   });
 
   // --- persist -------------------------------------------------------------
+  // Each write says which part failed and why (expired session, missing
+  // migration, bad value…) instead of one blanket "couldn't save".
+  const failed = (error: DbError, what: string) =>
+    dbErrorMessage(error, {
+      audience: "student",
+      action: what,
+      contactEmail: portal.contactEmail,
+    });
   const orNull = (s: string) => (s ? s : null);
 
   const { error: studentErr } = await supabase
@@ -248,7 +257,7 @@ export async function saveStep1(
       phone: v.phone,
     })
     .eq("id", portal.userId);
-  if (studentErr) return { errors: { form: SAVE_FAILED }, values: echo() };
+  if (studentErr) return { errors: { form: failed(studentErr, "save your name and phone number") }, values: echo() };
 
   // Respect a staff override: the admin table sets track_overridden when a
   // human picks a track, and auto-assignment must not undo that decision.
@@ -284,7 +293,7 @@ export async function saveStep1(
         : {}),
     })
     .eq("id", applicationId);
-  if (appErr) return { errors: { form: SAVE_FAILED }, values: echo() };
+  if (appErr) return { errors: { form: failed(appErr, "save your application answers") }, values: echo() };
 
   const { error: demoErr } = await supabase.from("demographics").upsert(
     {
@@ -303,7 +312,7 @@ export async function saveStep1(
     },
     { onConflict: "application_id" },
   );
-  if (demoErr) return { errors: { form: SAVE_FAILED }, values: echo() };
+  if (demoErr) return { errors: { form: failed(demoErr, "save your demographic answers") }, values: echo() };
 
   // Guardian rows. Columns are NOT NULL but accept the empty strings a partial
   // save leaves behind. An adult signing for themselves may leave the optional
@@ -317,7 +326,7 @@ export async function saveStep1(
       .upsert({ application_id: applicationId, position: 1, ...g1 }, {
         onConflict: "application_id,position",
       });
-    if (g1Err) return { errors: { form: SAVE_FAILED }, values: echo() };
+    if (g1Err) return { errors: { form: failed(g1Err, "save your parent/guardian contact") }, values: echo() };
 
     if (hasGuardian2) {
       const { error: g2Err } = await supabase
@@ -325,7 +334,7 @@ export async function saveStep1(
         .upsert({ application_id: applicationId, position: 2, ...g2 }, {
           onConflict: "application_id,position",
         });
-      if (g2Err) return { errors: { form: SAVE_FAILED }, values: echo() };
+      if (g2Err) return { errors: { form: failed(g2Err, "save your second guardian's contact") }, values: echo() };
     } else {
       await supabase
         .from("guardians")
@@ -369,4 +378,3 @@ export async function saveStep1(
   };
 }
 
-const SAVE_FAILED = "We couldn't save your answers. Please try again.";

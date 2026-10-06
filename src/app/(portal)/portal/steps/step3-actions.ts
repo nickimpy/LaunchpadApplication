@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getPortalData, setStepStatus } from "@/utils/step-engine";
 import { field, type FieldErrors } from "@/utils/validation";
 import { syncEssayPrompts } from "@/utils/essay-prompts";
+import { dbErrorMessage } from "@/utils/db-errors";
 import {
   countWords,
   responseField,
@@ -15,7 +16,6 @@ import {
   type Step3State,
 } from "@/utils/step3-options";
 
-const SAVE_FAILED = "We couldn't save your answers. Please try again.";
 const NO_PROMPTS =
   "There aren't any questions to answer yet. Check back soon — nothing is wrong with your application.";
 
@@ -51,7 +51,16 @@ export async function saveStep3(
     .eq("cycle_id", portal.cycleId)
     .eq("is_active", true)
     .order("sort_order");
-  if (promptErr) return { errors: { form: SAVE_FAILED } };
+  if (promptErr)
+    return {
+      errors: {
+        form: dbErrorMessage(promptErr, {
+          audience: "student",
+          action: "load the questions",
+          contactEmail: portal.contactEmail,
+        }),
+      },
+    };
   if (!prompts?.length) return { errors: { form: NO_PROMPTS } };
 
   const values: Record<string, string> = {};
@@ -88,7 +97,17 @@ export async function saveStep3(
     })),
     { onConflict: "application_id,prompt_id" },
   );
-  if (saveErr) return { errors: { form: SAVE_FAILED }, values };
+  if (saveErr)
+    return {
+      errors: {
+        form: dbErrorMessage(saveErr, {
+          audience: "student",
+          action: "save your answers",
+          contactEmail: portal.contactEmail,
+        }),
+      },
+      values,
+    };
 
   if (hasErrors) {
     if (!wasComplete) await setStepStatus(3, "in_progress");

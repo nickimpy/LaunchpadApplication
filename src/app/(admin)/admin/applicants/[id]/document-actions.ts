@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getAdminUser, logAdminAction } from "@/utils/admin";
+import { dbErrorMessage, storageErrorMessage } from "@/utils/db-errors";
 import { field } from "@/utils/validation";
 import type { AdminFormState } from "./actions";
 import { DOC_TYPES } from "@/utils/document-options";
@@ -60,7 +61,10 @@ export async function uploadDocument(
   const { error: uploadErr } = await supabase.storage
     .from("documents")
     .upload(path, file, { contentType: file.type || undefined, upsert: false });
-  if (uploadErr) return { error: "The upload failed. Please try again." };
+  if (uploadErr)
+    return {
+      error: storageErrorMessage(uploadErr, { audience: "staff", action: "upload that file" }),
+    };
 
   const { error: rowErr } = await supabase.from("documents").insert({
     application_id: applicationId,
@@ -72,7 +76,12 @@ export async function uploadDocument(
   if (rowErr) {
     // Don't leave an orphaned object behind if the row didn't land.
     await supabase.storage.from("documents").remove([path]);
-    return { error: "The upload failed. Please try again." };
+    return {
+      error: dbErrorMessage(rowErr, {
+        audience: "staff",
+        action: "record the upload (the file was removed again)",
+      }),
+    };
   }
 
   await logAdminAction({
@@ -104,7 +113,10 @@ export async function deleteDocument(
   if (!doc) return { error: "That document is already gone." };
 
   const { error } = await supabase.from("documents").delete().eq("id", documentId);
-  if (error) return { error: "Couldn't remove that document." };
+  if (error)
+    return {
+      error: dbErrorMessage(error, { audience: "staff", action: "remove that document" }),
+    };
   await supabase.storage.from("documents").remove([doc.storage_path as string]);
 
   await logAdminAction({

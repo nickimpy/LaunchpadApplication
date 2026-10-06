@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { getAdminUser, logAdminAction } from "@/utils/admin";
+import { dbErrorMessage, type DbError } from "@/utils/db-errors";
 import {
   field,
   emailError,
@@ -16,7 +17,10 @@ import {
 export type AdminFormState = { error?: string; success?: string };
 
 const DENIED = "You don't have permission to do that.";
-const FAILED = "That didn't save. Please try again.";
+
+/** Staff see why a write failed (permissions, missing migration, bad value). */
+const failed = (error: DbError, what: string) =>
+  dbErrorMessage(error, { audience: "staff", action: what });
 
 /**
  * Staff edit of a student's contact details. Audit-logged with before/after —
@@ -55,7 +59,7 @@ export async function updateStudentInfo(
     .from("students")
     .update({ ...values, preferred_name: values.preferred_name || null })
     .eq("id", studentId);
-  if (error) return { error: FAILED };
+  if (error) return { error: failed(error, "save the student's details") };
 
   await logAdminAction({
     actor: admin,
@@ -107,7 +111,7 @@ export async function updateGuardian(
     .from("guardians")
     .update(values)
     .eq("id", guardianId);
-  if (error) return { error: FAILED };
+  if (error) return { error: failed(error, "save the guardian contact") };
 
   await logAdminAction({
     actor: admin,
@@ -144,7 +148,7 @@ export async function regenerateParentLinkAsAdmin(
       parent_link_generated_at: new Date().toISOString(),
     })
     .eq("id", applicationId);
-  if (error) return { error: FAILED };
+  if (error) return { error: failed(error, "create a new parent link") };
 
   await logAdminAction({
     actor: admin,
@@ -173,7 +177,7 @@ export async function addNote(
   const { error } = await supabase
     .from("admin_notes")
     .insert({ application_id: applicationId, author_id: admin.id, body });
-  if (error) return { error: FAILED };
+  if (error) return { error: failed(error, "add the note") };
 
   revalidatePath(`/admin/applicants/${applicationId}`);
   return { success: "Note added." };

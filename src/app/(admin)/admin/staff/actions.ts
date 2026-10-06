@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { getAdminUser, logAdminAction } from "@/utils/admin";
+import { authErrorMessage } from "@/utils/auth-errors";
+import { dbErrorMessage } from "@/utils/db-errors";
 import { getOrigin } from "@/utils/origin";
 import { field, emailError } from "@/utils/validation";
 
@@ -51,7 +53,11 @@ export async function inviteAdmin(
       email_confirm: true, // staff are vouched for by the super admin
     });
     if (createErr || !created.user) {
-      return { error: createErr?.message ?? "Couldn't create that account." };
+      return {
+        error: createErr
+          ? authErrorMessage(createErr, `Couldn't create that account (${createErr.message}).`)
+          : "Couldn't create that account. Refresh the page and try again.",
+      };
     }
     userId = created.user.id;
   }
@@ -67,7 +73,13 @@ export async function inviteAdmin(
     },
     { onConflict: "id" },
   );
-  if (rowErr) return { error: "Couldn't save that staff member." };
+  if (rowErr)
+    return {
+      error: dbErrorMessage(rowErr, {
+        audience: "staff",
+        action: "save that staff member (their login exists, but staff access wasn't granted)",
+      }),
+    };
 
   // A recovery link doubles as "set your password for the first time".
   const origin = await getOrigin();
@@ -109,7 +121,13 @@ export async function setAdminActive(
     .from("admin_users")
     .update({ is_active: active })
     .eq("id", adminId);
-  if (error) return { error: "That didn't save. Please try again." };
+  if (error)
+    return {
+      error: dbErrorMessage(error, {
+        audience: "staff",
+        action: active ? "restore that staff member's access" : "revoke that staff member's access",
+      }),
+    };
 
   await logAdminAction({
     actor,
