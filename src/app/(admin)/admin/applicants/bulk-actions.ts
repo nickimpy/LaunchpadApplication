@@ -101,28 +101,6 @@ export async function bulkApply(
     }
   }
 
-  // ---- Interview track ---------------------------------------------------
-  else if (action === "track_a" || action === "track_b") {
-    const track = action === "track_a" ? "A" : "B";
-    for (const id of ids) {
-      const { error } = await supabase
-        .from("applications")
-        // Set by a human, so mark it overridden — auto-assignment must not
-        // undo this later.
-        .update({ track, track_overridden: true })
-        .eq("id", id);
-      if (error) return { error: stopped(changed, error, "change the track") };
-      changed += 1;
-      await logAdminAction({
-        actor: admin,
-        action: "application.track_update",
-        entityType: "application",
-        entityId: id,
-        after: { track, bulk: true },
-      });
-    }
-  }
-
   // ---- Decisions (recorded, never released in bulk) ----------------------
   else if (action === "decision") {
     if (!DECISION_VALUES.includes(decisionStatus)) {

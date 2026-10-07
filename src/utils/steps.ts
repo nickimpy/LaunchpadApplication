@@ -62,7 +62,7 @@ export const STEPS: StepMeta[] = [
     studentActionable: false,
     maxStudentStatus: null,
     summary:
-      "A Launchpad staff member will reach out to you to complete your interview! Check back here to make sure your interview is marked “complete” once done.",
+      "A Launchpad staff member will call you to complete your interview over the phone! Check back here to make sure your interview is marked “complete” once done.",
   },
   {
     number: 5,

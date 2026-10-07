@@ -8,7 +8,6 @@ export type InterviewData = {
   studentName: string;
   schoolName: string;
   isPartnerSchool: boolean;
-  track: string | null;
   program: string | null;
   /** Rubric criterion 6 requires the parent form, so its status is shown. */
   parentFormStatus: StepStatus;
@@ -37,7 +36,7 @@ export async function getInterviewData(
   const { data: application } = await supabase
     .from("applications")
     .select(
-      `id, track, program,
+      `id, program,
        students ( first_name, last_name, preferred_name ),
        schools ( name, is_partner ),
        step_progress ( step_number, status )`,
@@ -134,7 +133,6 @@ export async function getInterviewData(
     studentName: `${student?.first_name ?? ""} ${student?.last_name ?? ""}`.trim(),
     schoolName: school?.name ?? "",
     isPartnerSchool: Boolean(school?.is_partner),
-    track: (application.track as string) ?? null,
     program: (application.program as string) ?? null,
     parentFormStatus: statuses.get(2) ?? "not_started",
     parentFormSubmitted: Boolean(parentForm),

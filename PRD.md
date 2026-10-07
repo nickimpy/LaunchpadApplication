@@ -167,13 +167,10 @@ The questions are **hard-coded** (`STEP3_QUESTIONS` in `src/utils/step3-options.
 
 ## Step 4: Interview
 
-**Student-facing copy:** "A Launchpad staff member will reach out to you to complete your interview! Check back here to make sure your interview is marked "complete" once done." Due April 1, 2027.
+**Student-facing copy:** "A Launchpad staff member will call you to complete your interview over the phone! Check back here to make sure your interview is marked "complete" once done." Due April 1, 2027.
 
-**Track A (school-based):** partner-school students interview at school; no student scheduling; admin records outcome.
-**Track B (Launchpad-based):** everyone else (incl. graduates) books at Launchpad.
-**Track assignment:** school in partner list → A; otherwise or graduated → B.
+**Format:** every applicant is interviewed **over the phone** by Launchpad staff. There are no interview tracks (the old Track A at-school / Track B at-Launchpad split and partner-school auto-assignment were retired October 2026), no student self-scheduling, and no slot booking: staff call the applicant and record the outcome.
 
-**Scheduling:** JotForm / Life Scheduling fallback for v1; native is a fast-follow. If native: central admin creates slots, capacity can exceed 1, batches released ~1 week ahead (simple slot list UI, not a calendar), students reschedule/cancel anytime, blast email to unbooked Track B students on batch release (any admin can send). Support a "no-show" state on a booked slot.
 
 **Rubric:** 7 criteria, each 0-3 (Unaligned / Minimally / Mostly / Completely Aligned), optional note per criterion:
 
@@ -187,7 +184,7 @@ The questions are **hard-coded** (`STEP3_QUESTIONS` in `src/utils/step3-options.
 
 **Also captured:** Pathway Preference (5-point: Entrepreneurial Leadership Only / Leaning EL / Open to either / Leaning tech / Tech-Coding Only); schedule conflicts; college plans; interview date; interviewer(s); overall notes; committee's agreed final rating. Recording an outcome marks Step 4 complete.
 
-**Partner schools (31), admin-editable, match by school ID:** see partner_schools_track_a in school-dropdown-options.json.
+**Partner schools (31):** still flagged in the schools list (`is_partner`) and shown to staff as information only; they no longer drive any interview logic.
 
 ## Steps 5 & 6: C2LPHL Application & Required Documents
 
@@ -236,7 +233,6 @@ Sender: "Launchpad Philly" <apply@launchpadphilly.org> (mailbox to be created). 
 | Step 1 complete | Parent | Immediately | Parent form link (auto-filled) |
 | Parent form not submitted | Parent | 7 days after Step 1 | Follow-up reminder |
 | Any step completes | Student | Immediately | Confirmation + click-to-verify + timeline |
-| Track B slots released | Unbooked Track B students | On batch release | Blast with slots |
 | C2LPHL opens | All applicants | When announced | Complete C2L app |
 | Decision email | Student | Manually triggered | Link to portal |
 
@@ -246,7 +242,7 @@ Sender: "Launchpad Philly" <apply@launchpadphilly.org> (mailbox to be created). 
 
 **Audit trail (who/what/when):** edits to student info (name, phone, email); interview completion and status updates; any admissions decision (recording, changing, triggering email).
 
-**Applicant table:** filter/sort by school, step/status, track, program, etc.; inline editing (e.g., bulk counselor sign-off by school); on-demand CSV export.
+**Applicant table:** filter/sort by school, step/status, etc.; inline editing (e.g., bulk counselor sign-off by school); on-demand CSV export.
 
 **Student profile:** view all submissions; upload docs (transcript, attendance, IEP/504); log interviews; verify Steps 5-6; copy/re-send parent link; update guardian contact; general notes; record decision + trigger decision email.
 

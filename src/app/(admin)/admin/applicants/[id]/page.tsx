@@ -81,7 +81,7 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
       <p className="mb-6 text-xs">
         {s.email}
         {s.phone ? ` · ${s.phone}` : ""} · {profile.schoolName || "No school on file"}
-        {profile.isPartnerSchool && " · Partner school (Track A)"}
+        {profile.isPartnerSchool && " · Partner school"}
       </p>
 
       {Boolean(app.college_warning_flagged) && (
@@ -200,7 +200,6 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
               <Field label="GPA" value={app.gpa} />
               <Field label="Graduation year" value={app.graduation_year} />
               <Field label="Program" value={app.program} />
-              <Field label="Interview track" value={app.track} />
               <Field label="Heard about Launchpad via" value={app.referral_source} />
             </dl>
 

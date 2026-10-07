@@ -29,7 +29,6 @@ export default async function InterviewPage({
       <p className="mb-6 text-xs">
         {data.schoolName || "No school on file"}
         {data.isPartnerSchool ? " · Partner school" : ""}
-        {data.track ? ` · Track ${data.track}` : ""}
         {data.program ? ` · ${data.program}` : ""}
       </p>
 

@@ -17,7 +17,5 @@ export const BULK_ACTIONS = [
   { value: "verify_6", label: "Mark C2L Step 6 verified" },
   { value: "flag_5", label: "Flag C2L Step 5 incomplete" },
   { value: "flag_6", label: "Flag C2L Step 6 incomplete" },
-  { value: "track_a", label: "Set interview track A" },
-  { value: "track_b", label: "Set interview track B" },
   { value: "decision", label: "Record a decision" },
 ] as const;

@@ -245,9 +245,11 @@ export default async function StepPage({ params }: { params: Params }) {
             Launchpad staff update this step
           </h2>
           <p>
-            A Launchpad staff member will reach out to you to schedule and
-            complete your interview. Check back here — this step is marked
-            complete by Launchpad staff once your interview is done.
+            Interviews happen over the phone. A Launchpad staff member will
+            reach out to set up a time and call you at the number on your
+            application — so keep your phone number up to date in your
+            profile. This step is marked complete by Launchpad staff once your
+            interview is done.
           </p>
         </div>
       ) : step.number === 2 ? (

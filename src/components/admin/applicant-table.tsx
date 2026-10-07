@@ -4,7 +4,6 @@ import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import { bulkApply } from "@/app/(admin)/admin/applicants/bulk-actions";
 import { BULK_ACTIONS, type BulkState } from "@/utils/bulk-options";
-import { InlineTrack } from "@/components/admin/inline-track";
 import { DECISION_OPTIONS } from "@/utils/decision-options";
 import type { ApplicantRow } from "@/utils/applicants";
 import { STEPS, adminStatusLabel, type StepStatus } from "@/utils/steps";
@@ -240,7 +239,6 @@ export function ApplicantTable({ rows }: { rows: ApplicantRow[] }) {
               <th scope="col" className="px-3 py-3">Name</th>
               <th scope="col" className="px-3 py-3">School</th>
               <th scope="col" className="px-3 py-3">Grad</th>
-              <th scope="col" className="px-3 py-3">Track</th>
               <th scope="col" className="px-3 py-3">Steps 1–7</th>
               <th scope="col" className="px-3 py-3">Done</th>
             </tr>
@@ -289,13 +287,6 @@ export function ApplicantTable({ rows }: { rows: ApplicantRow[] }) {
                   )}
                 </td>
                 <td className="px-3 py-3">{r.graduationYear ?? "—"}</td>
-                <td className="px-3 py-3">
-                  <InlineTrack
-                    applicationId={r.applicationId}
-                    track={r.track}
-                    label={`${r.firstName} ${r.lastName}`}
-                  />
-                </td>
                 <td className="px-3 py-3">
                   <StatusPips statuses={r.statuses} />
                 </td>

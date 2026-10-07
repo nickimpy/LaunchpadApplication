@@ -6,7 +6,6 @@ import type { StepStatus } from "@/utils/steps";
 export type ApplicantFilters = {
   q: string;
   schoolId: string;
-  track: string;
   step: string;
   status: string;
   sort: string;
@@ -24,7 +23,6 @@ export type ApplicantRow = {
   isPartnerSchool: boolean;
   graduationYear: string | null;
   program: string | null;
-  track: string | null;
   collegeWarning: boolean;
   statuses: Record<number, StepStatus>;
   completedCount: number;
@@ -48,7 +46,6 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
   return {
     q: one("q"),
     schoolId: one("school"),
-    track: one("track"),
     step: one("step"),
     status: one("status"),
     sort: one("sort") || "name",
@@ -57,7 +54,7 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
 
 /** True when any filter is narrowing the list (drives the "clear" button). */
 export function hasActiveFilters(f: ApplicantFilters): boolean {
-  return Boolean(f.q || f.schoolId || f.track || (f.step && f.status));
+  return Boolean(f.q || f.schoolId || (f.step && f.status));
 }
 
 /**
@@ -87,7 +84,7 @@ export async function getApplicants(filters: ApplicantFilters): Promise<{
     supabase
       .from("applications")
       .select(
-        `id, student_id, school_id, school_other, graduation_year, program, track,
+        `id, student_id, school_id, school_other, graduation_year, program,
          college_warning_flagged, created_at,
          students ( first_name, last_name, preferred_name, email, phone ),
          step_progress ( step_number, status ),
@@ -105,7 +102,6 @@ export async function getApplicants(filters: ApplicantFilters): Promise<{
     school_other: string | null;
     graduation_year: string | null;
     program: string | null;
-    track: string | null;
     college_warning_flagged: boolean;
     created_at: string;
     students: {
@@ -135,7 +131,6 @@ export async function getApplicants(filters: ApplicantFilters): Promise<{
       isPartnerSchool: Boolean(a.schools?.is_partner),
       graduationYear: a.graduation_year,
       program: a.program,
-      track: a.track,
       collegeWarning: a.college_warning_flagged,
       statuses,
       completedCount: Object.values(statuses).filter((s) => s === "complete").length,
@@ -152,7 +147,6 @@ export async function getApplicants(filters: ApplicantFilters): Promise<{
         .toLowerCase();
       if (!haystack.includes(q)) return false;
     }
-    if (filters.track && (r.track ?? "") !== filters.track) return false;
     if (filters.step && filters.status) {
       const step = Number(filters.step);
       if ((r.statuses[step] ?? "not_started") !== filters.status) return false;
