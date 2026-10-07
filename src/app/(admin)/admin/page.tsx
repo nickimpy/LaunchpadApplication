@@ -4,6 +4,11 @@ import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { getAdminUser } from "@/utils/admin";
 import { STEPS, ADMIN_STATUS_LABELS, adminStatusLabel, type StepStatus } from "@/utils/steps";
+import {
+  SchoolTable,
+  StepCompletionBars,
+  type SchoolCount,
+} from "@/components/admin/dashboard-charts";
 
 export const metadata: Metadata = { title: "Dashboard — Launchpad Admin" };
 
@@ -37,10 +42,10 @@ export default async function AdminDashboard() {
     .maybeSingle();
   const cycleId = cycle?.id ?? "";
 
-  const [{ count: applicantCount }, { data: progress }] = await Promise.all([
+  const [{ data: applications }, { data: progress }] = await Promise.all([
     supabase
       .from("applications")
-      .select("*", { count: "exact", head: true })
+      .select("school_id, school_other, schools ( name, is_partner )")
       .eq("cycle_id", cycleId),
     supabase
       .from("step_progress")
@@ -56,13 +61,58 @@ export default async function AdminDashboard() {
     byStep.set(n, counts);
   }
 
+  const applicantCount = applications?.length ?? 0;
+  const completedByStep: Record<number, number> = {};
+  for (const [n, counts] of byStep) completedByStep[n] = counts.complete;
+
+  // Applicants per school. Listed schools group by id (names can repeat across
+  // renames, ids can't) and link to the school filter; "Other" free text groups
+  // by what the student typed and links to a name search instead.
+  type AppRow = {
+    school_id: string | null;
+    school_other: string | null;
+    schools: { name: string | null; is_partner: boolean | null } | null;
+  };
+  const bySchool = new Map<string, SchoolCount>();
+  for (const a of (applications ?? []) as unknown as AppRow[]) {
+    let key: string;
+    let entry: SchoolCount;
+    if (a.school_id && a.schools?.name) {
+      key = `id:${a.school_id}`;
+      entry = {
+        name: a.schools.name,
+        count: 0,
+        href: `/admin/applicants?school=${a.school_id}`,
+        isPartner: Boolean(a.schools.is_partner),
+      };
+    } else if (a.school_other?.trim()) {
+      const name = a.school_other.trim();
+      key = `other:${name.toLowerCase()}`;
+      entry = {
+        name: `${name} (typed in)`,
+        count: 0,
+        href: `/admin/applicants?q=${encodeURIComponent(name)}`,
+        isPartner: false,
+      };
+    } else {
+      key = "none";
+      entry = { name: "No school entered yet", count: 0, href: null, isPartner: false };
+    }
+    const current = bySchool.get(key) ?? entry;
+    current.count += 1;
+    bySchool.set(key, current);
+  }
+  const schoolRows = [...bySchool.values()].sort(
+    (a, b) => b.count - a.count || a.name.localeCompare(b.name),
+  );
+
   return (
     <>
       <h1 className="mb-3 text-2xl font-bold">
         Welcome back, {admin?.firstName || "there"}
       </h1>
       <p className="mb-9">
-        {applicantCount ?? 0} applicant{applicantCount === 1 ? "" : "s"} in the
+        {applicantCount} applicant{applicantCount === 1 ? "" : "s"} in the
         current cycle.{" "}
         <Link className="text-teal-dark underline" href="/admin/applicants">
           View the applicant list
@@ -120,6 +170,11 @@ export default async function AdminDashboard() {
             })}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-9">
+        <StepCompletionBars total={applicantCount} completed={completedByStep} />
+        <SchoolTable rows={schoolRows} total={applicantCount} />
       </div>
     </>
   );
