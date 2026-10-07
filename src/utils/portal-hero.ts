@@ -1,17 +1,14 @@
-// Photos for the banner across the top of the student portal home page.
-//
-// To add one: drop the image into `public/photos/` and add an entry below with
-// a short, factual description for screen readers (WCAG — never leave `alt`
-// empty for a photo that carries meaning, and describe what's in it rather
-// than the file name). Landscape, roughly 1200px wide or larger. Up to 3 are
-// shown side by side; with none, the banner falls back to a plain brand-teal
-// block so nothing looks broken.
+// The banner photo across the top of the public landing page and the student
+// portal home. To swap it: replace the file in `public/photos/` (keep a wide
+// ~4:1 crop, at least 1600px wide), then update `alt` below to describe what's
+// actually in the new photo — screen-reader users get the alt text instead.
 //
 // Only use photos students (and their families, if under 18) have agreed to
 // have published.
 
-export type HeroPhoto = { src: string; alt: string };
-
-export const HERO_PHOTOS: HeroPhoto[] = [
-  // { src: "/photos/hero-1.jpg", alt: "Launchpad students working together at laptops" },
-];
+export const BANNER = {
+  src: "/photos/banner.jpg",
+  width: 1600,
+  height: 400,
+  alt: "A large group of Launchpad students smiling and holding Launchpad pennants in front of the orange Launchpad wall.",
+};

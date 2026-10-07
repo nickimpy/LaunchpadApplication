@@ -1,9 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
+import { BannerPhoto } from "@/components/portal/portal-hero";
 
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
+      <div className="w-full max-w-5xl">
+        <BannerPhoto priority />
+      </div>
       <Image
         src="/brand/launchpad-logo-main-color.svg"
         alt="Launchpad Philly"

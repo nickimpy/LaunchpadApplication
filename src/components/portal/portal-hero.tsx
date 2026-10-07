@@ -1,56 +1,31 @@
 import Image from "next/image";
-import { HERO_PHOTOS } from "@/utils/portal-hero";
+import { BANNER } from "@/utils/portal-hero";
 
 /**
- * Banner across the top of the portal home page: student photos (see
- * `src/utils/portal-hero.ts`) with the welcome heading laid over a dark
- * gradient so the white text always clears contrast. With no photos it is a
- * solid brand-teal block, so the page works before any are added.
+ * The Launchpad banner photo, full width at its natural 4:1 shape. Text is
+ * kept OFF the photo — over a crowd shot it can't hold contrast — so headings
+ * go underneath. The photo's white clouds blend into the white page below.
  */
-export function PortalHero({ name }: { name: string }) {
-  const photos = HERO_PHOTOS.slice(0, 3);
+export function BannerPhoto({ priority = false }: { priority?: boolean }) {
   return (
-    <section
-      aria-labelledby="portal-welcome"
-      className="relative mb-6 flex min-h-48 items-end overflow-hidden rounded-lg bg-teal-dark sm:min-h-64"
-    >
-      {photos.length > 0 && (
-        <div
-          className={`absolute inset-0 grid ${
-            photos.length === 1
-              ? "grid-cols-1"
-              : photos.length === 2
-                ? "grid-cols-2"
-                : "grid-cols-1 sm:grid-cols-3"
-          }`}
-        >
-          {photos.map((photo, i) => (
-            <div
-              key={photo.src}
-              // On phones only the first photo shows when there are three, so
-              // the banner stays a sensible height instead of stacking.
-              className={`relative ${i > 0 && photos.length === 3 ? "hidden sm:block" : ""}`}
-            >
-              <Image
-                src={photo.src}
-                alt={photo.alt}
-                fill
-                sizes="(min-width: 640px) 33vw, 100vw"
-                className="object-cover"
-                priority={i === 0}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent"
-      />
-      <h1
-        id="portal-welcome"
-        className="relative px-6 pb-6 text-2xl font-bold text-white sm:text-3xl"
-      >
+    <Image
+      src={BANNER.src}
+      alt={BANNER.alt}
+      width={BANNER.width}
+      height={BANNER.height}
+      sizes="(min-width: 1024px) 1024px, 100vw"
+      priority={priority}
+      className="h-auto w-full rounded-lg"
+    />
+  );
+}
+
+/** Portal home: the banner, then the welcome heading. */
+export function PortalHero({ name }: { name: string }) {
+  return (
+    <section aria-labelledby="portal-welcome" className="mb-6">
+      <BannerPhoto priority />
+      <h1 id="portal-welcome" className="mt-6 text-2xl font-bold sm:text-3xl">
         Welcome, {name}!
       </h1>
     </section>
