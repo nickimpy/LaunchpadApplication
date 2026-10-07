@@ -7,7 +7,7 @@ import { BULK_ACTIONS, type BulkState } from "@/utils/bulk-options";
 import { InlineTrack } from "@/components/admin/inline-track";
 import { DECISION_OPTIONS } from "@/utils/decision-options";
 import type { ApplicantRow } from "@/utils/applicants";
-import { STEPS, STATUS_LABELS, type StepStatus } from "@/utils/steps";
+import { STEPS, adminStatusLabel, type StepStatus } from "@/utils/steps";
 import { Alert } from "@/components/forms";
 
 const STATUS_DOT: Record<StepStatus, string> = {
@@ -27,11 +27,11 @@ function StatusPips({ statuses }: { statuses: Record<number, StepStatus> }) {
         return (
           <span
             key={step.number}
-            title={`Step ${step.number} (${step.name}): ${STATUS_LABELS[status]}`}
+            title={`Step ${step.number} (${step.name}): ${adminStatusLabel(step.number, status)}`}
             className={`inline-block h-3 w-3 rounded-full ${STATUS_DOT[status]}`}
           >
             <span className="sr-only">
-              Step {step.number} {STATUS_LABELS[status]}.
+              Step {step.number} {adminStatusLabel(step.number, status)}.
             </span>
           </span>
         );

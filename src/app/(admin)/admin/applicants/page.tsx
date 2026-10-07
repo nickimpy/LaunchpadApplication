@@ -6,7 +6,7 @@ import {
   hasActiveFilters,
   SORT_OPTIONS,
 } from "@/utils/applicants";
-import { STEPS, STATUS_LABELS, type StepStatus } from "@/utils/steps";
+import { STEPS, ADMIN_STATUS_LABELS, type StepStatus } from "@/utils/steps";
 import { ApplicantTable } from "@/components/admin/applicant-table";
 
 export const metadata: Metadata = { title: "Applicants — Launchpad Admin" };
@@ -123,9 +123,9 @@ export default async function ApplicantsPage({
             className="mt-1 w-full rounded-md border border-grey-tint1 bg-white px-3 py-3 text-base"
           >
             <option value="">Any status</option>
-            {(Object.keys(STATUS_LABELS) as StepStatus[]).map((s) => (
+            {(Object.keys(ADMIN_STATUS_LABELS) as StepStatus[]).map((s) => (
               <option key={s} value={s}>
-                {STATUS_LABELS[s]}
+                {ADMIN_STATUS_LABELS[s]}
               </option>
             ))}
           </select>

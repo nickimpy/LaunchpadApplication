@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { getAdminUser } from "@/utils/admin";
-import { STEPS, STATUS_LABELS, type StepStatus } from "@/utils/steps";
+import { STEPS, ADMIN_STATUS_LABELS, adminStatusLabel, type StepStatus } from "@/utils/steps";
 
 export const metadata: Metadata = { title: "Dashboard — Launchpad Admin" };
 
@@ -21,14 +21,31 @@ const EMPTY: Counts = {
 /**
  * Pipeline funnel: how many applicants sit at each status, per step. Gives
  * staff the "counts by step, completed vs outstanding" view the PRD asks for.
+ * Every count links to the applicant list filtered to exactly those students,
+ * so a number on this page is never a dead end.
  */
 export default async function AdminDashboard() {
   const admin = await getAdminUser();
   const supabase = createClient(await cookies());
 
+  // Scoped to the active cycle, same as the applicant list — otherwise these
+  // counts include past cycles and disagree with the list they link to.
+  const { data: cycle } = await supabase
+    .from("cycles")
+    .select("id")
+    .eq("is_active", true)
+    .maybeSingle();
+  const cycleId = cycle?.id ?? "";
+
   const [{ count: applicantCount }, { data: progress }] = await Promise.all([
-    supabase.from("applications").select("*", { count: "exact", head: true }),
-    supabase.from("step_progress").select("step_number, status"),
+    supabase
+      .from("applications")
+      .select("*", { count: "exact", head: true })
+      .eq("cycle_id", cycleId),
+    supabase
+      .from("step_progress")
+      .select("step_number, status, applications!inner(cycle_id)")
+      .eq("applications.cycle_id", cycleId),
   ]);
 
   const byStep = new Map<number, Counts>();
@@ -53,7 +70,10 @@ export default async function AdminDashboard() {
         .
       </p>
 
-      <h2 className="mb-3 text-lg font-bold">Pipeline</h2>
+      <h2 className="mb-1 text-lg font-bold">Pipeline</h2>
+      <p className="mb-3 text-xs">
+        Select any number to see exactly which applicants it counts.
+      </p>
       <div className="overflow-x-auto rounded-lg border border-grey-tint2 bg-white shadow-sm">
         <table className="w-full min-w-[720px] border-collapse text-base">
           <caption className="sr-only">
@@ -64,7 +84,7 @@ export default async function AdminDashboard() {
               <th scope="col" className="px-3 py-3">Step</th>
               {(Object.keys(EMPTY) as StepStatus[]).map((status) => (
                 <th scope="col" key={status} className="px-3 py-3">
-                  {STATUS_LABELS[status]}
+                  {ADMIN_STATUS_LABELS[status]}
                 </th>
               ))}
             </tr>
@@ -79,7 +99,20 @@ export default async function AdminDashboard() {
                   </th>
                   {(Object.keys(EMPTY) as StepStatus[]).map((status) => (
                     <td key={status} className="px-3 py-3">
-                      {counts[status] || <span className="text-grey-tint1">—</span>}
+                      {counts[status] ? (
+                        <Link
+                          href={`/admin/applicants?step=${step.number}&status=${status}`}
+                          className="font-bold text-teal-dark underline focus:outline-none
+                            focus-visible:ring-2 focus-visible:ring-teal-dark"
+                          aria-label={`${counts[status]} ${
+                            counts[status] === 1 ? "applicant" : "applicants"
+                          } at Step ${step.number} (${step.name}): ${adminStatusLabel(step.number, status)} — view list`}
+                        >
+                          {counts[status]}
+                        </Link>
+                      ) : (
+                        <span className="text-grey-tint1">—</span>
+                      )}
                     </td>
                   ))}
                 </tr>

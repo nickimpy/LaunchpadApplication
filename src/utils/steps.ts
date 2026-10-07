@@ -154,6 +154,23 @@ export const STAFF_STATUS_LABELS: Record<StepStatus, string> = {
   complete: "Reviewed — verified",
 };
 
+/**
+ * Step-agnostic staff wording, for places that label a status without a step
+ * (dashboard column headers, the status filter). "Complete" stays "Complete":
+ * the C2L "Reviewed — verified" wording only fits Steps 5–6.
+ */
+export const ADMIN_STATUS_LABELS: Record<StepStatus, string> = {
+  ...STATUS_LABELS,
+  needs_attention: "Flagged by staff",
+};
+
+/** Staff wording for one step's status: C2L review terms on Steps 5–6 only. */
+export function adminStatusLabel(stepNumber: number, status: StepStatus): string {
+  return stepNumber === 5 || stepNumber === 6
+    ? STAFF_STATUS_LABELS[status]
+    : ADMIN_STATUS_LABELS[status];
+}
+
 /** Statuses a student is allowed to set on a step (mirrors the RLS policy). */
 export function studentAllowedStatuses(stepNumber: number): StepStatus[] {
   const meta = getStepMeta(stepNumber);
