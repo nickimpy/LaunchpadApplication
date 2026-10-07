@@ -171,6 +171,31 @@ export function adminStatusLabel(stepNumber: number, status: StepStatus): string
     : ADMIN_STATUS_LABELS[status];
 }
 
+/** Stage number meaning "every step is complete, decision released". */
+export const STAGE_DONE = TOTAL_STEPS + 1;
+
+/**
+ * Where an applicant currently sits: the EARLIEST step they haven't completed
+ * (1–7), or STAGE_DONE once all seven are complete. Every applicant lands in
+ * exactly one stage, so stage counts show the real bottleneck — "25 still owe
+ * short answers", "70 waiting on an interview" — and drain downward as steps
+ * finish. "Complete" means status `complete`; a C2L step a student reported
+ * but staff haven't verified still counts as open (it's waiting on staff).
+ */
+export function currentStage(statuses: Record<number, StepStatus>): number {
+  for (const step of STEPS) {
+    if ((statuses[step.number] ?? "not_started") !== "complete") return step.number;
+  }
+  return STAGE_DONE;
+}
+
+/** Label for a stage, as staff read it on the dashboard and filter. */
+export function stageLabel(stage: number): string {
+  if (stage === STAGE_DONE) return "Decision released";
+  const step = getStepMeta(stage);
+  return step ? `${step.number}. ${step.name}` : `Step ${stage}`;
+}
+
 /** Statuses a student is allowed to set on a step (mirrors the RLS policy). */
 export function studentAllowedStatuses(stepNumber: number): StepStatus[] {
   const meta = getStepMeta(stepNumber);

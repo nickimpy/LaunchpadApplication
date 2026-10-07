@@ -3,12 +3,15 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { getAdminUser } from "@/utils/admin";
-import { STEPS, ADMIN_STATUS_LABELS, adminStatusLabel, type StepStatus } from "@/utils/steps";
 import {
-  SchoolTable,
-  StepCompletionBars,
-  type SchoolCount,
-} from "@/components/admin/dashboard-charts";
+  STEPS,
+  ADMIN_STATUS_LABELS,
+  adminStatusLabel,
+  currentStage,
+  type StepStatus,
+} from "@/utils/steps";
+import { StageBars } from "@/components/admin/dashboard-charts";
+import { SchoolTable, type SchoolCount } from "@/components/admin/school-table";
 
 export const metadata: Metadata = { title: "Dashboard — Launchpad Admin" };
 
@@ -49,7 +52,7 @@ export default async function AdminDashboard() {
       .eq("cycle_id", cycleId),
     supabase
       .from("step_progress")
-      .select("step_number, status, applications!inner(cycle_id)")
+      .select("application_id, step_number, status, applications!inner(cycle_id)")
       .eq("applications.cycle_id", cycleId),
   ]);
 
@@ -62,8 +65,19 @@ export default async function AdminDashboard() {
   }
 
   const applicantCount = applications?.length ?? 0;
-  const completedByStep: Record<number, number> = {};
-  for (const [n, counts] of byStep) completedByStep[n] = counts.complete;
+  // Each applicant's current stage = earliest step they haven't completed.
+  const statusesByApp = new Map<string, Record<number, StepStatus>>();
+  for (const row of progress ?? []) {
+    const id = row.application_id as string;
+    const statuses = statusesByApp.get(id) ?? {};
+    statuses[row.step_number as number] = row.status as StepStatus;
+    statusesByApp.set(id, statuses);
+  }
+  const byStage: Record<number, number> = {};
+  for (const statuses of statusesByApp.values()) {
+    const stage = currentStage(statuses);
+    byStage[stage] = (byStage[stage] ?? 0) + 1;
+  }
 
   // Applicants per school. Listed schools group by id (names can repeat across
   // renames, ids can't) and link to the school filter; "Other" free text groups
@@ -173,8 +187,8 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="mt-9">
-        <StepCompletionBars total={applicantCount} completed={completedByStep} />
-        <SchoolTable rows={schoolRows} total={applicantCount} />
+        <StageBars total={statusesByApp.size} byStage={byStage} />
+        <SchoolTable rows={schoolRows} />
       </div>
     </>
   );

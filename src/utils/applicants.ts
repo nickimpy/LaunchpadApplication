@@ -1,11 +1,13 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
-import type { StepStatus } from "@/utils/steps";
+import { currentStage, type StepStatus } from "@/utils/steps";
 
 export type ApplicantFilters = {
   q: string;
   schoolId: string;
+  /** Earliest incomplete step (1–7), or 8 for all done — see currentStage(). */
+  stage: string;
   step: string;
   status: string;
   sort: string;
@@ -46,6 +48,7 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
   return {
     q: one("q"),
     schoolId: one("school"),
+    stage: one("stage"),
     step: one("step"),
     status: one("status"),
     sort: one("sort") || "name",
@@ -54,7 +57,7 @@ export function parseFilters(sp: Record<string, string | string[] | undefined>):
 
 /** True when any filter is narrowing the list (drives the "clear" button). */
 export function hasActiveFilters(f: ApplicantFilters): boolean {
-  return Boolean(f.q || f.schoolId || (f.step && f.status));
+  return Boolean(f.q || f.schoolId || f.stage || (f.step && f.status));
 }
 
 /**
@@ -146,6 +149,9 @@ export async function getApplicants(filters: ApplicantFilters): Promise<{
         .join(" ")
         .toLowerCase();
       if (!haystack.includes(q)) return false;
+    }
+    if (filters.stage && currentStage(r.statuses) !== Number(filters.stage)) {
+      return false;
     }
     if (filters.step && filters.status) {
       const step = Number(filters.step);
