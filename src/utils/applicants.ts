@@ -26,6 +26,8 @@ export type ApplicantRow = {
   graduationYear: string | null;
   program: string | null;
   collegeWarning: boolean;
+  /** Flag raised but staff have since talked it through and cleared it. */
+  collegeWarningResolved: boolean;
   statuses: Record<number, StepStatus>;
   completedCount: number;
   createdAt: string;
@@ -33,11 +35,74 @@ export type ApplicantRow = {
 
 export const SORT_OPTIONS = [
   { value: "name", label: "Name (A–Z)" },
+  { value: "name_desc", label: "Name (Z–A)" },
   { value: "newest", label: "Newest first" },
   { value: "oldest", label: "Oldest first" },
-  { value: "progress", label: "Most complete first" },
+  { value: "progress", label: "Most steps done first" },
+  { value: "progress_asc", label: "Fewest steps done first" },
+  { value: "stage", label: "Furthest behind first" },
+  { value: "stage_desc", label: "Furthest along first" },
   { value: "school", label: "School (A–Z)" },
+  { value: "school_desc", label: "School (Z–A)" },
+  { value: "grad", label: "Graduation year (earliest first)" },
+  { value: "grad_desc", label: "Graduation year (latest first)" },
 ] as const;
+
+/** Sortable table columns → their ascending sort key (descending = `_desc`). */
+export const SORTABLE_COLUMNS = {
+  name: "name",
+  school: "school",
+  grad: "grad",
+  stage: "stage",
+  progress: "progress_asc",
+} as const;
+export type SortableColumn = keyof typeof SORTABLE_COLUMNS;
+
+/**
+ * The applicant-list URL for a set of filters, optionally overriding some.
+ * One place builds these so column-header sort links, the CSV export and the
+ * dashboard all agree on parameter names.
+ */
+export function applicantsQuery(
+  f: ApplicantFilters,
+  overrides: Partial<ApplicantFilters> = {},
+): string {
+  const merged = { ...f, ...overrides };
+  const params = new URLSearchParams();
+  if (merged.q) params.set("q", merged.q);
+  if (merged.schoolId) params.set("school", merged.schoolId);
+  if (merged.stage) params.set("stage", merged.stage);
+  if (merged.step) params.set("step", merged.step);
+  if (merged.status) params.set("status", merged.status);
+  if (merged.sort && merged.sort !== "name") params.set("sort", merged.sort);
+  return params.toString();
+}
+
+/**
+ * For each sortable column: where clicking its header goes, and whether the
+ * list is currently sorted by it (for aria-sort and the arrow). Clicking the
+ * active column flips the direction; any other column starts ascending.
+ */
+export function sortLinks(
+  f: ApplicantFilters,
+): Record<SortableColumn, { href: string; direction: "ascending" | "descending" | null }> {
+  const out = {} as Record<
+    SortableColumn,
+    { href: string; direction: "ascending" | "descending" | null }
+  >;
+  for (const [col, asc] of Object.entries(SORTABLE_COLUMNS) as [SortableColumn, string][]) {
+    // "progress" is a special case: its ascending key carries the suffix.
+    const desc = asc === "progress_asc" ? "progress" : `${asc}_desc`;
+    const direction =
+      f.sort === asc ? "ascending" : f.sort === desc ? "descending" : null;
+    const next = direction === "ascending" ? desc : asc;
+    out[col] = {
+      href: `/admin/applicants?${applicantsQuery(f, { sort: next })}`,
+      direction,
+    };
+  }
+  return out;
+}
 
 /** Parses raw searchParams into a normalized, trusted filter object. */
 export function parseFilters(sp: Record<string, string | string[] | undefined>): ApplicantFilters {
@@ -88,7 +153,7 @@ export async function getApplicants(filters: ApplicantFilters): Promise<{
       .from("applications")
       .select(
         `id, student_id, school_id, school_other, graduation_year, program,
-         college_warning_flagged, created_at,
+         college_warning_flagged, college_warning_resolved_at, created_at,
          students ( first_name, last_name, preferred_name, email, phone ),
          step_progress ( step_number, status ),
          schools ( name, is_partner )`,
@@ -106,6 +171,7 @@ export async function getApplicants(filters: ApplicantFilters): Promise<{
     graduation_year: string | null;
     program: string | null;
     college_warning_flagged: boolean;
+    college_warning_resolved_at: string | null;
     created_at: string;
     students: {
       first_name: string | null;
@@ -135,6 +201,7 @@ export async function getApplicants(filters: ApplicantFilters): Promise<{
       graduationYear: a.graduation_year,
       program: a.program,
       collegeWarning: a.college_warning_flagged,
+      collegeWarningResolved: Boolean(a.college_warning_resolved_at),
       statuses,
       completedCount: Object.values(statuses).filter((s) => s === "complete").length,
       createdAt: a.created_at,
@@ -167,20 +234,41 @@ export async function getApplicants(filters: ApplicantFilters): Promise<{
     ? rows.filter((r) => r.schoolName === schoolName)
     : rows;
 
+  const byName = (a: ApplicantRow, b: ApplicantRow) =>
+    a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName);
+  // Blank values sort last in either direction, so "no school yet" never
+  // crowds the top of a list.
+  const blankLast = (x: string, y: string, dir: 1 | -1) =>
+    !x && !y ? 0 : !x ? 1 : !y ? -1 : dir * x.localeCompare(y);
+  // Graduation years are text ("Before 2025", "2026"…); "Before" sorts earliest.
+  const gradKey = (g: string | null) => (g ? (g.startsWith("Before") ? "0000" : g) : "");
+
   const sorted = [...scoped].sort((a, b) => {
     switch (filters.sort) {
+      case "name_desc":
+        return -byName(a, b);
       case "newest":
         return b.createdAt.localeCompare(a.createdAt);
       case "oldest":
         return a.createdAt.localeCompare(b.createdAt);
       case "progress":
-        return b.completedCount - a.completedCount;
+        return b.completedCount - a.completedCount || byName(a, b);
+      case "progress_asc":
+        return a.completedCount - b.completedCount || byName(a, b);
+      case "stage":
+        return currentStage(a.statuses) - currentStage(b.statuses) || byName(a, b);
+      case "stage_desc":
+        return currentStage(b.statuses) - currentStage(a.statuses) || byName(a, b);
       case "school":
-        return a.schoolName.localeCompare(b.schoolName);
+        return blankLast(a.schoolName, b.schoolName, 1) || byName(a, b);
+      case "school_desc":
+        return blankLast(a.schoolName, b.schoolName, -1) || byName(a, b);
+      case "grad":
+        return blankLast(gradKey(a.graduationYear), gradKey(b.graduationYear), 1) || byName(a, b);
+      case "grad_desc":
+        return blankLast(gradKey(a.graduationYear), gradKey(b.graduationYear), -1) || byName(a, b);
       default:
-        return (
-          a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName)
-        );
+        return byName(a, b);
     }
   });
 

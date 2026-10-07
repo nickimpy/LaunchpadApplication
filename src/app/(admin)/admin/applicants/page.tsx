@@ -4,6 +4,8 @@ import {
   getApplicants,
   parseFilters,
   hasActiveFilters,
+  applicantsQuery,
+  sortLinks,
   SORT_OPTIONS,
 } from "@/utils/applicants";
 import {
@@ -27,9 +29,9 @@ export default async function ApplicantsPage({
   const filters = parseFilters(await searchParams);
   const { rows, schools, total } = await getApplicants(filters);
 
-  const exportHref = `/admin/applicants/export?${new URLSearchParams(
-    Object.entries(filters).filter(([, v]) => v) as [string, string][],
-  )}`;
+  // Same parameter names the list itself reads (the old version serialised the
+  // filter object's own keys, so ?schoolId= was silently ignored by the export).
+  const exportHref = `/admin/applicants/export?${applicantsQuery(filters)}`;
 
   return (
     <>
@@ -177,7 +179,7 @@ export default async function ApplicantsPage({
           </p>
         </div>
       ) : (
-        <ApplicantTable rows={rows} />
+        <ApplicantTable rows={rows} sort={sortLinks(filters)} />
       )}
     </>
   );

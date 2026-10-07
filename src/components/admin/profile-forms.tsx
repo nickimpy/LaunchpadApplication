@@ -7,6 +7,8 @@ import {
   updateGuardian,
   regenerateParentLinkAsAdmin,
   addNote,
+  resolveCollegeFlag,
+  reopenCollegeFlag,
   type AdminFormState,
 } from "@/app/(admin)/admin/applicants/[id]/actions";
 import {
@@ -286,5 +288,84 @@ export function NotesPanel({ profile }: { profile: ApplicantProfile }) {
         </ul>
       )}
     </>
+  );
+}
+
+/**
+ * The college-plan flag on a profile. Open: what the student chose and a box
+ * to record what staff learned when they called. Resolved: who cleared it,
+ * when, and why — with a way to put it back up.
+ */
+export function CollegeFlagPanel({
+  applicationId,
+  plan,
+  resolvedAt,
+  resolvedBy,
+  resolution,
+}: {
+  applicationId: string;
+  plan: string | null;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  resolution: string | null;
+}) {
+  const [resolveState, resolveAction] = useActionState<AdminFormState, FormData>(
+    resolveCollegeFlag.bind(null, applicationId),
+    {},
+  );
+  const [reopenState, reopenAction] = useActionState<AdminFormState, FormData>(
+    reopenCollegeFlag.bind(null, applicationId),
+    {},
+  );
+
+  if (resolvedAt) {
+    return (
+      <div className="mb-6 rounded-md border-l-4 border-green-dark bg-green-tint3 px-3 py-3">
+        <p className="mb-1">
+          <strong>College plan flag — resolved</strong>
+          {resolvedBy ? ` by ${resolvedBy}` : ""} on {formatDate(resolvedAt)}.
+        </p>
+        {resolution && <p className="mb-3 whitespace-pre-line">{resolution}</p>}
+        {plan && <p className="mb-3 text-xs">Their Step 1 answer: {plan}</p>}
+        {reopenState.error && <Alert tone="error">{reopenState.error}</Alert>}
+        <form action={reopenAction}>
+          <button
+            type="submit"
+            className="text-xs font-bold text-teal-dark underline focus:outline-none
+              focus-visible:ring-2 focus-visible:ring-teal-dark"
+          >
+            Reopen the flag
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6 rounded-md border-l-4 border-orange-dark bg-orange-tint3 px-3 py-3">
+      <p className="mb-1">
+        <strong>Flagged for review — college plans.</strong> This student may
+        not be able to attend Launchpad&apos;s half-day schedule.
+      </p>
+      {plan && <p className="mb-3">Their Step 1 answer: &ldquo;{plan}&rdquo;</p>}
+      {resolveState.error && <Alert tone="error">{resolveState.error}</Alert>}
+      {reopenState.success && <Alert tone="success">{reopenState.success}</Alert>}
+      <form action={resolveAction} className="flex flex-col gap-3">
+        <label className="block">
+          <span className="block text-xs font-bold">
+            What did you learn? (required to resolve)
+          </span>
+          <textarea
+            name="resolution"
+            rows={2}
+            placeholder="e.g. Attending CCP part-time in the evenings — fits the schedule."
+            className="mt-1 block w-full rounded-md border border-grey-tint1 bg-white px-3 py-3 text-base"
+          />
+        </label>
+        <div>
+          <SubmitButton pendingLabel="Saving…">Mark resolved</SubmitButton>
+        </div>
+      </form>
+    </div>
   );
 }

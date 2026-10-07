@@ -244,6 +244,16 @@ export async function saveStep1(
     .eq("id", portal.userId);
   if (studentErr) return { errors: { form: failed(studentErr, "save your name and phone number") }, values: echo() };
 
+  // If this save RAISES the college flag (it wasn't up before), any earlier
+  // staff resolution was about a different answer — clear it so the new one
+  // gets looked at. Re-saving the same flagged answer keeps the resolution.
+  const { data: priorFlag } = await supabase
+    .from("applications")
+    .select("college_warning_flagged")
+    .eq("id", applicationId)
+    .maybeSingle();
+  const flagNewlyRaised = collegeWarningFlagged && !priorFlag?.college_warning_flagged;
+
   const { error: appErr } = await supabase
     .from("applications")
     .update({
@@ -261,6 +271,13 @@ export async function saveStep1(
       program_answers: programAnswers,
       self_release: selfRelease,
       college_warning_flagged: collegeWarningFlagged,
+      ...(flagNewlyRaised
+        ? {
+            college_warning_resolved_at: null,
+            college_warning_resolved_by: null,
+            college_warning_resolution: null,
+          }
+        : {}),
       // Stamp the parent-link generation time on first completion — but not
       // when validation failed, since the step isn't actually complete.
       ...(intent === "submit" && !wasComplete && !hasErrors

@@ -6,6 +6,7 @@ import { formatDateTime } from "@/utils/dates";
 import { STEPS, STATUS_LABELS, type StepStatus } from "@/utils/steps";
 import {
   StudentInfoForm,
+  CollegeFlagPanel,
   GuardianForm,
   ParentLinkPanel,
   DocumentPanel,
@@ -85,11 +86,16 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
       </p>
 
       {Boolean(app.college_warning_flagged) && (
-        <div className="mb-6 rounded-md border-l-4 border-orange-dark bg-orange-tint3 px-3 py-3">
-          <strong>Flagged for review:</strong> this student chose a
-          post-high-school plan that may not be compatible with Launchpad
-          (college outside Philadelphia).
-        </div>
+        <CollegeFlagPanel
+          applicationId={profile.applicationId}
+          plan={
+            ((app.program_answers as Record<string, unknown> | null)
+              ?.fnd_post_hs_plan as string | undefined) ?? null
+          }
+          resolvedAt={(app.college_warning_resolved_at as string | null) ?? null}
+          resolvedBy={profile.collegeFlagResolvedBy}
+          resolution={(app.college_warning_resolution as string | null) ?? null}
+        />
       )}
 
       <div className="mb-6 flex flex-wrap gap-3">

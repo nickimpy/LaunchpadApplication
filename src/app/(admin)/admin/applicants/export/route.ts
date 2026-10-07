@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
     "Graduation year",
     "Program",
     "College plan flagged",
+    "College flag resolved",
     ...STEPS.map((s) => `Step ${s.number}: ${s.name}`),
     "Steps complete",
     "Applied",
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
       r.graduationYear ?? "",
       r.program ?? "",
       r.collegeWarning ? "Yes" : "No",
+      r.collegeWarning ? (r.collegeWarningResolved ? "Yes" : "No") : "",
       ...STEPS.map(
         (s) => STATUS_LABELS[(r.statuses[s.number] ?? "not_started") as StepStatus],
       ),

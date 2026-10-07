@@ -5,7 +5,7 @@ import Link from "next/link";
 import { bulkApply } from "@/app/(admin)/admin/applicants/bulk-actions";
 import { BULK_ACTIONS, type BulkState } from "@/utils/bulk-options";
 import { DECISION_OPTIONS } from "@/utils/decision-options";
-import type { ApplicantRow } from "@/utils/applicants";
+import type { ApplicantRow, SortableColumn } from "@/utils/applicants";
 import { STEPS, adminStatusLabel, type StepStatus } from "@/utils/steps";
 import { Alert } from "@/components/forms";
 
@@ -39,7 +39,52 @@ function StatusPips({ statuses }: { statuses: Record<number, StepStatus> }) {
   );
 }
 
-export function ApplicantTable({ rows }: { rows: ApplicantRow[] }) {
+type SortLinks = Record<
+  SortableColumn,
+  { href: string; direction: "ascending" | "descending" | null }
+>;
+
+/**
+ * A column header that sorts the list. A real link (the sort lives in the URL
+ * with the filters, so it survives reloads and shared links), with aria-sort
+ * on the header cell so screen readers announce the current order.
+ */
+function SortHeader({
+  label,
+  link,
+  className = "",
+}: {
+  label: string;
+  link: SortLinks[SortableColumn];
+  className?: string;
+}) {
+  const arrow =
+    link.direction === "ascending" ? "▲" : link.direction === "descending" ? "▼" : "↕";
+  const next = link.direction === "ascending" ? "descending" : "ascending";
+  return (
+    <th scope="col" aria-sort={link.direction ?? "none"} className={`px-3 py-3 ${className}`}>
+      <Link
+        href={link.href}
+        className="inline-flex items-center gap-1 font-bold hover:underline focus:outline-none
+          focus-visible:ring-2 focus-visible:ring-teal-dark"
+        aria-label={`${label}: sort ${next}`}
+      >
+        {label}
+        <span aria-hidden="true" className={link.direction ? "text-teal-dark" : "text-grey-tint1"}>
+          {arrow}
+        </span>
+      </Link>
+    </th>
+  );
+}
+
+export function ApplicantTable({
+  rows,
+  sort,
+}: {
+  rows: ApplicantRow[];
+  sort: SortLinks;
+}) {
   const [selected, setSelected] = useState<string[]>([]);
   const [action, setAction] = useState("");
   const [note, setNote] = useState("");
@@ -236,11 +281,11 @@ export function ApplicantTable({ rows }: { rows: ApplicantRow[] }) {
                   </span>
                 </label>
               </th>
-              <th scope="col" className="px-3 py-3">Name</th>
-              <th scope="col" className="px-3 py-3">School</th>
-              <th scope="col" className="px-3 py-3">Grad</th>
-              <th scope="col" className="px-3 py-3">Steps 1–7</th>
-              <th scope="col" className="px-3 py-3">Done</th>
+              <SortHeader label="Name" link={sort.name} />
+              <SortHeader label="School" link={sort.school} />
+              <SortHeader label="Grad" link={sort.grad} />
+              <SortHeader label="Steps 1–7" link={sort.stage} />
+              <SortHeader label="Done" link={sort.progress} />
             </tr>
           </thead>
           <tbody>
@@ -274,7 +319,7 @@ export function ApplicantTable({ rows }: { rows: ApplicantRow[] }) {
                     <span className="block text-xs">goes by {r.preferredName}</span>
                   )}
                   <span className="block text-xs">{r.email}</span>
-                  {r.collegeWarning && (
+                  {r.collegeWarning && !r.collegeWarningResolved && (
                     <span className="mt-1 inline-block rounded-full bg-orange-tint3 px-3 py-1 text-xs font-bold text-orange-dark">
                       College plan flagged
                     </span>

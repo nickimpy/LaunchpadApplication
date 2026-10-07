@@ -60,6 +60,8 @@ export type ApplicantProfile = {
   notes: ProfileNote[];
   audit: AuditEntry[];
   parentLinkUrl: string;
+  /** Staff member who resolved the college-plan flag, if it has been. */
+  collegeFlagResolvedBy: string | null;
   interview: {
     recorded: boolean;
     interviewDate: string | null;
@@ -211,6 +213,19 @@ export async function getApplicantProfile(
     interviewerNames = names.length ? names.join(", ") : (interview?.interviewers as string) ?? null;
   }
 
+  let collegeFlagResolvedBy: string | null = null;
+  if (application.college_warning_resolved_by) {
+    const { data: resolver } = await supabase
+      .from("admin_users")
+      .select("email, first_name, last_name")
+      .eq("id", application.college_warning_resolved_by as string)
+      .maybeSingle();
+    collegeFlagResolvedBy = resolver
+      ? [resolver.first_name, resolver.last_name].filter(Boolean).join(" ") ||
+        (resolver.email as string)
+      : null;
+  }
+
   const origin = await getOrigin();
 
   return {
@@ -267,6 +282,7 @@ export async function getApplicantProfile(
       createdAt: a.created_at as string,
     })),
     parentLinkUrl: `${origin}/parent/${application.parent_link_token}`,
+    collegeFlagResolvedBy,
     interview: {
       recorded: Boolean(interview),
       interviewDate: (interview?.interview_date as string) ?? null,

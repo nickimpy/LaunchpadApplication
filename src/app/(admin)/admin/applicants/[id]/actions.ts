@@ -182,3 +182,84 @@ export async function addNote(
   revalidatePath(`/admin/applicants/${applicationId}`);
   return { success: "Note added." };
 }
+
+/**
+ * Clears the college-plan flag after staff have talked it through with the
+ * student (e.g. "going to CCP part-time", "college only after 101"). A note is
+ * required so the reason survives — the flag itself is the student's answer
+ * and stays recorded; this only marks it as dealt with. Audit-logged.
+ */
+export async function resolveCollegeFlag(
+  applicationId: string,
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  const admin = await getAdminUser();
+  if (!admin) return { error: DENIED };
+
+  const note = field(formData, "resolution");
+  if (!note) {
+    return { error: "Say what you learned, e.g. \"Attending CCP part-time — fits the schedule.\"" };
+  }
+
+  const supabase = createClient(await cookies());
+  const { error } = await supabase
+    .from("applications")
+    .update({
+      college_warning_resolved_at: new Date().toISOString(),
+      college_warning_resolved_by: admin.id,
+      college_warning_resolution: note,
+    })
+    .eq("id", applicationId);
+  if (error) return { error: failed(error, "resolve the college flag") };
+
+  await logAdminAction({
+    actor: admin,
+    action: "college_flag.resolve",
+    entityType: "application",
+    entityId: applicationId,
+    after: { resolution: note },
+  });
+
+  revalidatePath(`/admin/applicants/${applicationId}`);
+  revalidatePath("/admin/applicants");
+  return { success: "Flag resolved." };
+}
+
+/** Puts a resolved college flag back up, e.g. if the student's plans change. */
+export async function reopenCollegeFlag(
+  applicationId: string,
+  _prev: AdminFormState,
+): Promise<AdminFormState> {
+  const admin = await getAdminUser();
+  if (!admin) return { error: DENIED };
+
+  const supabase = createClient(await cookies());
+  const { data: before } = await supabase
+    .from("applications")
+    .select("college_warning_resolution")
+    .eq("id", applicationId)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("applications")
+    .update({
+      college_warning_resolved_at: null,
+      college_warning_resolved_by: null,
+      college_warning_resolution: null,
+    })
+    .eq("id", applicationId);
+  if (error) return { error: failed(error, "reopen the college flag") };
+
+  await logAdminAction({
+    actor: admin,
+    action: "college_flag.reopen",
+    entityType: "application",
+    entityId: applicationId,
+    before: { resolution: before?.college_warning_resolution ?? null },
+  });
+
+  revalidatePath(`/admin/applicants/${applicationId}`);
+  revalidatePath("/admin/applicants");
+  return { success: "Flag reopened." };
+}
