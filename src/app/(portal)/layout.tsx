@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { getPortalData } from "@/utils/step-engine";
 import { isActiveAdmin, hasStudentRecord } from "@/utils/admin";
 import { StepNav } from "@/components/portal/step-nav";
+import { BannerStrip } from "@/components/portal/portal-hero";
 import { logout } from "./profile/actions";
 
 // Auth gate lives HERE (server layout), not in src/proxy.ts — same pattern
@@ -69,6 +70,7 @@ export default async function PortalLayout({
           </form>
         </div>
       </header>
+      <BannerStrip />
       <div className="flex flex-1 flex-col md:flex-row">
         <StepNav steps={data.steps} completedCount={data.completedCount} />
         <main id="portal-content" className="min-w-0 flex-1 px-6 py-9">
