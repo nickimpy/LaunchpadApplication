@@ -56,6 +56,8 @@ export function Turnstile({ resetOn }: { resetOn?: unknown }) {
         // Hidden for most people; shows a simple checkbox only when
         // Cloudflare is unsure. Never a picture puzzle.
         appearance: "interaction-only",
+        // Match the white form card (it otherwise follows the OS dark mode).
+        theme: "light",
         callback: (t: string) => setToken(t),
         "expired-callback": () => setToken(""),
         "error-callback": () => setToken(""),
