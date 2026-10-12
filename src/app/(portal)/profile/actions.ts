@@ -15,6 +15,7 @@ import {
   emailError,
   field,
   nameError,
+  nameShapeError,
   phoneError,
   preferenceError,
   type FieldErrors,
@@ -50,6 +51,7 @@ export async function updateProfile(
   const checks = {
     first_name: nameError(values.first_name, "first name"),
     last_name: nameError(values.last_name, "last name"),
+    preferred_name: values.preferred_name ? nameShapeError(values.preferred_name) : null,
     phone: phoneError(values.phone),
     date_of_birth: dobError(values.date_of_birth),
     notification_preference: preferenceError(values.notification_preference),
@@ -71,7 +73,6 @@ export async function updateProfile(
       last_name: values.last_name,
       preferred_name: values.preferred_name || null,
       phone: values.phone,
-      date_of_birth: values.date_of_birth,
       notification_preference: values.notification_preference,
     })
     .eq("id", user.id);
@@ -81,6 +82,23 @@ export async function updateProfile(
         form: dbErrorMessage(updateError, {
           audience: "student",
           action: "save your profile changes",
+        }),
+      },
+    };
+
+  // Date of birth drives the age limit and the 18+ records-release option, so
+  // the database only accepts it from the server (migration 0011) — written
+  // here, after the eligibility check above.
+  const { error: dobError2 } = await createAdminClient()
+    .from("students")
+    .update({ date_of_birth: values.date_of_birth })
+    .eq("id", user.id);
+  if (dobError2)
+    return {
+      errors: {
+        form: dbErrorMessage(dobError2, {
+          audience: "student",
+          action: "save your date of birth",
         }),
       },
     };

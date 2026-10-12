@@ -83,6 +83,7 @@ const MESSAGE_STATUS: Record<string, string> = {
   failed: "Failed",
   dry_run: "Test mode (not actually sent)",
   deferred: "Waiting for 9am (texts don't go out overnight)",
+  capped: "Not sent — daily anti-spam limit for this address/number",
 };
 
 export default async function ApplicantProfilePage({ params }: { params: Params }) {

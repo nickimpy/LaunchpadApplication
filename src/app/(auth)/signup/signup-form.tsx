@@ -96,6 +96,14 @@ export function SignupForm() {
       )}
       {state.errors?.form && <Alert tone="error">{state.errors.form}</Alert>}
       <form action={action}>
+        {/* Bot trap — see the honeypot check in actions.ts. Hidden from people
+            (off-screen, not focusable, ignored by screen readers). */}
+        <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+          <label>
+            Company
+            <input type="text" name="company" tabIndex={-1} autoComplete="off" />
+          </label>
+        </div>
         <TextField
           label="First name"
           name="first_name"

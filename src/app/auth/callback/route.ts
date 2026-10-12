@@ -11,7 +11,13 @@ import { createClient } from "@/utils/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/portal";
+  // Same-site paths only. Without this, ?next=https://evil.example turns a real
+  // Launchpad link into a redirect to any site (an "open redirect" phishers use).
+  const rawNext = searchParams.get("next") ?? "";
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\")
+      ? rawNext
+      : "/portal";
 
   if (code) {
     const supabase = createClient(await cookies());

@@ -36,7 +36,10 @@ export async function POST(request: NextRequest) {
   const type = String(form.get("type") ?? "") as EmailOtpType;
   // Only ever a same-site path: this value rides through an email link.
   const rawNext = String(form.get("next") ?? "");
-  const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/portal";
+  const next =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") && !rawNext.startsWith("/\\")
+      ? rawNext
+      : "/portal";
 
   // 303 so the browser follows the redirect with GET, not another POST.
   const go = (path: string) =>

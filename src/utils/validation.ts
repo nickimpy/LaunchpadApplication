@@ -24,9 +24,23 @@ export function passwordError(password: string): string | null {
   return null;
 }
 
+// Names end up inside emails and texts that Launchpad sends to OTHER people
+// (a student's name goes to their parent, a parent's name to the student), so
+// they must never be able to carry a link or markup — that would let a bad
+// actor use Launchpad's own address and number to deliver phishing.
+const NAME_MAX = 60;
+const LINKY = /(https?:|www\.|\.(com|net|org|io|co|ly|info|xyz|app|link)\b|[<>{}\[\]\\/@])/i;
+
+/** Shared rule for any person's name: length, and nothing link-like. */
+export function nameShapeError(value: string): string | null {
+  if (value.length > NAME_MAX) return `Keep this under ${NAME_MAX} characters.`;
+  if (LINKY.test(value)) return "Use letters only — no links, emails, or symbols.";
+  return null;
+}
+
 export function nameError(value: string, label: string): string | null {
   if (!value) return `Enter your ${label}.`;
-  return null;
+  return nameShapeError(value);
 }
 
 export function phoneError(phone: string): string | null {
@@ -126,6 +140,11 @@ export function parentRequiredError(
 ): string | null {
   if (!value) return `Enter ${label}.`;
   return null;
+}
+
+/** A parent's own name: required, and nothing link-like (see nameShapeError). */
+export function parentNameError(value: string, label: string): string | null {
+  return parentRequiredError(value, label) ?? nameShapeError(value);
 }
 
 export function parentEmailError(email: string): string | null {

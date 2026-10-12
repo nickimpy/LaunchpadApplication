@@ -15,6 +15,7 @@ import {
   field,
   choiceError,
   parentRequiredError,
+  parentNameError,
   parentEmailError,
   parentPhoneError,
   availabilityConcernsError,
@@ -141,8 +142,8 @@ export async function submitParentForm(
   // Required: "Prefer not to disclose" is its own answer, so there's no reason
   // to allow a blank on top of it.
   set("iep", choiceError(v.iep, IEP_VALUES, "an IEP answer"));
-  set("parent_first_name", parentRequiredError(v.parent_first_name, "your first name"));
-  set("parent_last_name", parentRequiredError(v.parent_last_name, "your last name"));
+  set("parent_first_name", parentNameError(v.parent_first_name, "your first name"));
+  set("parent_last_name", parentNameError(v.parent_last_name, "your last name"));
   set(
     "parent_relationship",
     parentRequiredError(v.parent_relationship, "your relationship to the student"),

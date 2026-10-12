@@ -44,6 +44,14 @@ export async function signup(
   // never echo the password back to the client
   const safeValues = { ...values, password: "" };
 
+  // Honeypot: a field real people never see (hidden off-screen, skipped by
+  // keyboard and screen readers). Form-filling bots fill every input. Pretend
+  // it worked so the bot learns nothing, but create no account and send no email.
+  if (field(formData, "company")) {
+    console.warn("signup honeypot tripped", { email: values.email });
+    redirect(`/verify-email?email=${encodeURIComponent(values.email)}`);
+  }
+
   const errors: FieldErrors = {};
   const checks = {
     first_name: nameError(values.first_name, "first name"),

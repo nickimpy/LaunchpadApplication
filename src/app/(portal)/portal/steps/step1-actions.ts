@@ -1,5 +1,6 @@
 "use server";
 
+import { createAdminClient } from "@/utils/supabase/admin";
 import { onStep1Submitted } from "@/utils/notify/triggers";
 import { getOrigin } from "@/utils/origin";
 import { after as afterResponse } from "next/server";
@@ -14,6 +15,7 @@ import { dbErrorMessage, type DbError } from "@/utils/db-errors";
 import {
   field,
   nameError,
+  nameShapeError,
   phoneError,
   emailError,
   gpaError,
@@ -125,6 +127,10 @@ export async function saveStep1(
   // A GPA that can't be right is rejected on a plain save too, not just on
   // submit — the column holds two decimal places, so an absurd value would
   // otherwise fail the whole save with a generic error.
+  // The preferred name is what every email and text greets them with, so it
+  // gets the same no-links rule as legal names, on every save.
+  if (v.preferred_name) set("preferred_name", nameShapeError(v.preferred_name));
+
   const gpaProblem = v.gpa ? gpaError(v.gpa) : null;
   if (gpaProblem) set("gpa", gpaProblem);
   const gpaOk = !gpaProblem;
@@ -272,6 +278,23 @@ export async function saveStep1(
       referral_source: orNull(v.referral_source),
       program,
       program_answers: programAnswers,
+      // Stamp the parent-link generation time on first completion — but not
+      // when validation failed, since the step isn't actually complete.
+      ...(intent === "submit" && !wasComplete && !hasErrors
+        ? { parent_link_generated_at: new Date().toISOString() }
+        : {}),
+    })
+    .eq("id", applicationId);
+  if (appErr) return { errors: { form: failed(appErr, "save your application answers") }, values: echo() };
+
+  // Protected fields, written by the SERVER after its own checks: the 18+
+  // records-release choice (age verified above from the stored DOB) and the
+  // college-plan flag (computed above from their answers). The database
+  // refuses these from a student's own login (migration 0011), so a student
+  // can't self-sign under 18 or hide their flag by calling the API directly.
+  const { error: protectedErr } = await createAdminClient()
+    .from("applications")
+    .update({
       self_release: selfRelease,
       college_warning_flagged: collegeWarningFlagged,
       ...(flagNewlyRaised
@@ -281,14 +304,11 @@ export async function saveStep1(
             college_warning_resolution: null,
           }
         : {}),
-      // Stamp the parent-link generation time on first completion — but not
-      // when validation failed, since the step isn't actually complete.
-      ...(intent === "submit" && !wasComplete && !hasErrors
-        ? { parent_link_generated_at: new Date().toISOString() }
-        : {}),
     })
-    .eq("id", applicationId);
-  if (appErr) return { errors: { form: failed(appErr, "save your application answers") }, values: echo() };
+    .eq("id", applicationId)
+    .eq("student_id", portal.userId);
+  if (protectedErr)
+    return { errors: { form: failed(protectedErr, "save your records release choice") }, values: echo() };
 
   const { error: demoErr } = await supabase.from("demographics").upsert(
     {

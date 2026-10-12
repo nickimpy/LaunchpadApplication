@@ -29,14 +29,19 @@ const BRAND_TEAL = "#0a8196";
 
 /** Wraps plain paragraphs in the branded shell used by every email. */
 function shell(bodyParagraphs: string[], cta?: { label: string; url: string }): string {
+  // Everything is escaped, then ONLY our own <strong> tags are restored. The
+  // paragraphs carry user-typed text (student and parent names, staff notes),
+  // and without this a name like `<a href="evil">Claim your prize</a>` would
+  // become a live link in an email sent from Launchpad's address.
   const paragraphs = bodyParagraphs
+    .map((p) => escapeHtml(p).replace(/&lt;(\/?)strong&gt;/g, "<$1strong>"))
     .map(
       (p) =>
         `<p style="margin:0 0 15px;font-size:15px;line-height:1.3;color:${BRAND_GREY}">${p}</p>`,
     )
     .join("");
   const button = cta
-    ? `<p style="margin:0 0 15px"><a href="${cta.url}" style="display:inline-block;background:${BRAND_TEAL};color:#ffffff;font-size:15px;font-weight:bold;line-height:1.3;padding:12px 18px;border-radius:6px;text-decoration:none">${cta.label}</a></p>`
+    ? `<p style="margin:0 0 15px"><a href="${escapeHtml(cta.url)}" style="display:inline-block;background:${BRAND_TEAL};color:#ffffff;font-size:15px;font-weight:bold;line-height:1.3;padding:12px 18px;border-radius:6px;text-decoration:none">${cta.label}</a></p>`
     : "";
   return `<!doctype html><html><body style="margin:0;padding:24px;background:#f7f7f7;font-family:Arial,Helvetica,sans-serif">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
@@ -257,7 +262,7 @@ export function c2lFlagged(
   const lines = [
     `Hi ${ctx.firstName},`,
     `We checked Step ${args.stepNumber} (${args.stepName}) against C2LPHL's records and something still needs fixing:`,
-    `<strong>${escapeHtml(args.note)}</strong>`,
+    `<strong>${args.note}</strong>`, // shell() escapes it
     `Once it's fixed on C2LPHL's site, go back to Step ${args.stepNumber} in your application and report it again so we can re-check.`,
     signOff(ctx.contactEmail),
   ];

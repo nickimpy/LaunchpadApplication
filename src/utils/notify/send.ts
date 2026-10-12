@@ -76,7 +76,9 @@ export async function notify(
     });
   };
 
-  if (wantsEmail && recipient.email) {
+  if (wantsEmail && recipient.email && (await capped("email", recipient.email))) {
+    await logCapped("email", recipient.email);
+  } else if (wantsEmail && recipient.email) {
     const dryRun = emailDryRun();
     const result = await sendEmail({
       to: recipient.email,
@@ -98,6 +100,8 @@ export async function notify(
         { ok: false, error: "Not a valid US phone number — text skipped" },
         false,
       );
+    } else if (await capped("sms", to)) {
+      await logCapped("sms", to);
     } else if (inSmsQuietHours()) {
       // Texts only go out 9am–8pm Eastern. Park it; the morning cron run sends
       // every deferred text (see sendDeferredSms).
@@ -119,6 +123,64 @@ export async function notify(
   }
 
   return { sent, failed, dryRun: anyDryRun };
+
+  async function logCapped(channel: "email" | "sms", to: string) {
+    failed += 1;
+    await supabase.from("notification_log").insert({
+      student_id: recipient.studentId ?? null,
+      application_id: recipient.applicationId ?? null,
+      recipient: to,
+      channel,
+      template: message.template,
+      trigger_event: triggerEvent,
+      status: "capped",
+      payload: { error: "Skipped: daily sending limit reached (anti-spam safety cap)" },
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Anti-abuse caps
+// ---------------------------------------------------------------------------
+// Normal use never comes near these: a single applicant gets a handful of
+// messages across the whole cycle. They exist so a bug, a bot, or someone
+// typing a stranger's number as their "parent" can't turn Launchpad's sender
+// into a spam cannon or run up the Twilio bill. Capped sends are logged (status
+// 'capped') so staff can see them on the profile.
+
+/** Max messages to ONE phone / inbox in 24 hours. */
+const PER_RECIPIENT_DAILY = { email: 8, sms: 5 } as const;
+
+/** Max texts across the whole app in 24 hours (override with SMS_DAILY_CAP). */
+const GLOBAL_SMS_DAILY = Number(process.env.SMS_DAILY_CAP ?? 400);
+
+async function capped(channel: "email" | "sms", to: string): Promise<boolean> {
+  const supabase = createAdminClient();
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const counted = ["sent", "dry_run", "deferred"];
+
+  const { count: toRecipient } = await supabase
+    .from("notification_log")
+    .select("id", { count: "exact", head: true })
+    .eq("channel", channel)
+    .eq("recipient", to)
+    .in("status", counted)
+    .gte("sent_at", since);
+  if ((toRecipient ?? 0) >= PER_RECIPIENT_DAILY[channel]) return true;
+
+  if (channel === "sms") {
+    const { count: allSms } = await supabase
+      .from("notification_log")
+      .select("id", { count: "exact", head: true })
+      .eq("channel", "sms")
+      .in("status", counted)
+      .gte("sent_at", since);
+    if ((allSms ?? 0) >= GLOBAL_SMS_DAILY) {
+      console.error("GLOBAL SMS CAP REACHED — texts are being skipped", { cap: GLOBAL_SMS_DAILY });
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
