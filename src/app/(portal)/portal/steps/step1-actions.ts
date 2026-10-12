@@ -1,5 +1,8 @@
 "use server";
 
+import { onStep1Submitted } from "@/utils/notify/triggers";
+import { getOrigin } from "@/utils/origin";
+import { after as afterResponse } from "next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -349,6 +352,12 @@ export async function saveStep1(
   if (intent === "submit") {
     const { error } = await setStepStatus(1, "complete");
     if (error) return { errors: { form: error }, values: echo() };
+    // First submit only: confirmation to the student + the parent form link
+    // to each guardian (or the records release link, for 18+ self-signers).
+    if (!wasComplete) {
+      const origin = await getOrigin();
+      afterResponse(() => onStep1Submitted(applicationId, origin));
+    }
   } else if (!wasComplete) {
     // Saving partial progress moves a not-started step to in_progress, but
     // never downgrades a step that was already submitted/complete.

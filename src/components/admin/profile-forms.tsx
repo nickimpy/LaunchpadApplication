@@ -9,6 +9,7 @@ import {
   addNote,
   resolveCollegeFlag,
   reopenCollegeFlag,
+  resendParentLink,
   type AdminFormState,
 } from "@/app/(admin)/admin/applicants/[id]/actions";
 import {
@@ -95,10 +96,16 @@ export function ParentLinkPanel({
     async () => regenerateParentLinkAsAdmin(applicationId),
     {},
   );
+  const [sendState, sendAction] = useActionState<AdminFormState, FormData>(
+    resendParentLink.bind(null, applicationId),
+    {},
+  );
   return (
     <>
       {state.success && <Alert tone="success">{state.success}</Alert>}
       {state.error && <Alert tone="error">{state.error}</Alert>}
+      {sendState.success && <Alert tone="success">{sendState.success}</Alert>}
+      {sendState.error && <Alert tone="error">{sendState.error}</Alert>}
       <p className="mb-3 text-xs">
         {submitted
           ? "The parent form is already signed and submitted. A new link would let them fill it in again — only regenerate if you know you need that."
@@ -112,6 +119,11 @@ export function ParentLinkPanel({
         className="mb-3 w-full rounded-md border border-grey-tint1 bg-grey-tint4 px-3 py-3 text-xs"
       />
       <div className="flex flex-wrap gap-3">
+        {!submitted && (
+          <form action={sendAction}>
+            <SubmitButton pendingLabel="Sending…">Email + text it to them</SubmitButton>
+          </form>
+        )}
         <button
           type="button"
           onClick={() => navigator.clipboard.writeText(url)}

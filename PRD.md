@@ -222,19 +222,31 @@ The portal can't be pasted into WordPress as content (it is a separate app with 
 
 ## Automated Emails & Notifications
 
-Sender: "Launchpad Philly" <apply@launchpadphilly.org> (mailbox to be created). Email via Resend, SMS via Twilio, per student preference (email/SMS/both, no full opt-out). Confirmations include realistic expected timeline + named contact point. After major submissions, send confirmation requiring click/reply to verify receipt.
+Sender: "Launchpad Philly" <portal@launchpadphilly.org> (a real Workspace user; `apply@` is a Google Group and can't send), with **Reply-To apply@launchpadphilly.org** so replies reach staff. Email via Google Workspace SMTP; SMS via Twilio (Launchpad's account, A2P-registered). Students choose email / text / both (default both; no full opt-out). Confirmations state a realistic timeline + contact.
 
-| Trigger | Recipient | Timing | Message |
-|---|---|---|---|
-| Account created | Student | Immediately | Email verification link (required) |
-| Account created, no app started | Student | 7 days after signup | Reminder to begin |
-| Step 1 done, Step 3 not | Student | 2-5 days after Step 1 | Short answers reminder + link |
-| Step 1 done, Step 2 not | Student | 2-5 days after Step 1 | Parent form reminder + link |
-| Step 1 complete | Parent | Immediately | Parent form link (auto-filled) |
-| Parent form not submitted | Parent | 7 days after Step 1 | Follow-up reminder |
-| Any step completes | Student | Immediately | Confirmation + click-to-verify + timeline |
-| C2LPHL opens | All applicants | When announced | Complete C2L app |
-| Decision email | Student | Manually triggered | Link to portal |
+**Text consent:** choosing "text" or "both" on the website is the consent (the preference field states the terms: frequency varies, rates may apply, STOP/HELP). There is **no "reply Y" step** (no Twilio console access, and website consent is sufficient). Parents never gave us their number themselves, so every parent text identifies Launchpad and ends "Reply STOP to opt out." Twilio handles STOP/HELP automatically.
+
+**Texts only send 9am–8pm Eastern;** anything triggered outside that waits for the morning run.
+
+| # | Trigger | Recipient | Email | Text |
+|---|---|---|---|---|
+| — | Account created / magic link / reset / email change | Student | ✓ (Supabase Auth) | — |
+| 1 | Step 1 submitted (first time) | Each guardian on file — parent form link | ✓ | ✓ |
+| 1b | Same, applicant 18+ signing their own release | Student — records release link | ✓ | ✓ |
+| 2 | Parent signs Step 2 | Student | ✓ | ✓ |
+| 3 | Step 1 / Step 3 submitted, C2L step reported | Student — receipt + what's next | ✓ | — |
+| 4 | Staff flag a C2L step incomplete | Student — includes staff note | ✓ | ✓ |
+| 5 | Staff verify a C2L step | Student | ✓ | — |
+| 6 | Interview recorded | Student | ✓ | — |
+| 7 | Decision released | Student — "your decision is ready" (never the decision itself) | ✓ | ✓ |
+| 8 | Account 7+ days old, Step 1 not started | Student (once) | ✓ | ✓ |
+| 9 | Step 1 done 3+ days, Step 3 not | Student (once) | ✓ | ✓ |
+| 10 | Step 1 done 3+ days, Step 2 not | Student — nudge parent / sign own release (once) | ✓ | ✓ |
+| 11 | Step 1 done 7+ days, parent form not in | Guardians (once) | ✓ | ✓ |
+| 12 | A student-facing step due within 7 days and not done | Student (once per step) | ✓ | ✓ |
+| — | Staff "Email + text it to them" button on the profile | Guardians (or 18+ student) | ✓ | ✓ |
+
+Reminders run once a day (~10am ET) via Vercel Cron and stop once any decision is on file. Editing a guardian never auto-resends; staff use the button. Retired: the interview-slot blast (interviews are by phone) and the "C2LPHL is open" blast (the link is always on Steps 5–6). Every send/failure/deferral is logged and shown on the applicant profile ("Messages sent").
 
 ## Admin Dashboard
 

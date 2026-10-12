@@ -1,5 +1,8 @@
 "use server";
 
+import { onInterviewRecorded } from "@/utils/notify/triggers";
+import { getOrigin } from "@/utils/origin";
+import { after as afterResponse } from "next/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
@@ -149,6 +152,11 @@ export async function saveInterview(
     before,
     after: { interview_date: values.interview_date, final_rating: values.final_rating },
   });
+
+  if (!before) {
+    const origin = await getOrigin();
+    afterResponse(() => onInterviewRecorded(applicationId, origin));
+  }
 
   revalidatePath(`/admin/applicants/${applicationId}`);
   revalidatePath(`/admin/applicants/${applicationId}/interview`);

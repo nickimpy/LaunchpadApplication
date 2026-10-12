@@ -398,6 +398,13 @@ export function NotificationPreferenceField({
         Important updates about your application arrive this way — you can
         change it any time from your profile.
       </p>
+      {/* This choice IS the text-message consent (no separate "reply Y" step),
+          so the terms have to be stated right here. */}
+      <p className="mt-1 text-xs">
+        By choosing text messages, you agree to receive texts from Launchpad
+        Philly about your application. Message frequency varies. Message and
+        data rates may apply. Reply STOP to stop, HELP for help.
+      </p>
       <div className="mt-3 flex flex-col gap-3">
         {NOTIFICATION_PREFERENCES.map((value) => (
           <label key={value} className="flex items-center gap-3">

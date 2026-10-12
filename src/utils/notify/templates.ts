@@ -119,7 +119,7 @@ export function parentFormInvite(
 ): RenderedMessage {
   const lines = [
     `Hello,`,
-    `${args.studentName} has applied to Launchpad Philly, a free program in Center City that trains young people in technology and entrepreneurship.`,
+    `${args.studentName} has applied to Launchpad Philly, a free program in Center City that trains young people in technology and entrepreneurship. They listed you as their parent or guardian.`,
     `There's one short form we need from a parent or guardian — about five minutes, and <strong>no account or password required</strong>. Your student's details are already filled in.`,
     `This form also gives us permission to request their transcript from their high school, so their application can't move forward without it.`,
     signOff(ctx.contactEmail),
@@ -129,7 +129,9 @@ export function parentFormInvite(
     subject: `A short form for ${args.studentName}'s Launchpad application`,
     text: lines.join("\n\n").replace(/<\/?strong>/g, ""),
     html: shell(lines, { label: "Open the parent form", url: args.parentLinkUrl }),
-    sms: `Launchpad Philly: ${args.studentName} applied and needs a parent/guardian form (about 5 min, no login): ${args.parentLinkUrl}`,
+    // Parents didn't give us this number themselves — their student did — so
+    // the text says plainly who it's from, and how to stop.
+    sms: `Launchpad Philly: ${args.studentName} applied to our free training program and needs a parent/guardian form (about 5 min, no login): ${args.parentLinkUrl} Reply STOP to opt out.`,
   };
 }
 
@@ -148,7 +150,7 @@ export function parentFormReminder(
     subject: `Still needed: parent form for ${args.studentName}`,
     text: lines.join("\n\n"),
     html: shell(lines, { label: "Open the parent form", url: args.parentLinkUrl }),
-    sms: `Launchpad Philly: we still need the parent/guardian form for ${args.studentName}: ${args.parentLinkUrl}`,
+    sms: `Launchpad Philly: we still need the parent/guardian form for ${args.studentName}: ${args.parentLinkUrl} Reply STOP to opt out.`,
   };
 }
 
@@ -175,22 +177,6 @@ export function c2lOpenBlast(
   };
 }
 
-export function interviewSlotsBlast(ctx: TemplateContext): RenderedMessage {
-  const lines = [
-    `Hi ${ctx.firstName},`,
-    `New interview times are available. Interviews are 30 minutes, and they're the last thing standing between you and a decision.`,
-    `Slots are released in batches and do fill up, so book while there's choice.`,
-    signOff(ctx.contactEmail),
-  ];
-  return {
-    template: "interview_slots_blast",
-    subject: "New Launchpad interview times available",
-    text: lines.join("\n\n"),
-    html: shell(lines, { label: "Book my interview", url: ctx.portalUrl }),
-    sms: `Launchpad: new interview times are available — book yours here: ${ctx.portalUrl}`,
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Decision
 // ---------------------------------------------------------------------------
@@ -213,4 +199,136 @@ export function decisionReady(ctx: TemplateContext): RenderedMessage {
     html: shell(lines, { label: "View my decision", url: ctx.portalUrl }),
     sms: `Launchpad Philly: your admissions decision is ready. Sign in to view it: ${ctx.portalUrl}`,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Added for the trigger wiring (October 2026)
+// ---------------------------------------------------------------------------
+
+/** Strips the text version, for messages that go by email only. */
+export function emailOnly(message: RenderedMessage): RenderedMessage {
+  return { ...message, sms: undefined };
+}
+
+/** 18+ applicant signing their own records release (replaces the parent invite). */
+export function selfReleaseInvite(
+  ctx: TemplateContext,
+  args: { formUrl: string },
+): RenderedMessage {
+  const lines = [
+    `Hi ${ctx.firstName},`,
+    `Thanks for submitting Step 1. Because you're 18 or older, you'll sign your own records release form — it lets your high school send your records to Launchpad, and takes about five minutes.`,
+    signOff(ctx.contactEmail),
+  ];
+  return {
+    template: "self_release_invite",
+    subject: "Next: sign your Launchpad records release form",
+    text: lines.join("\n\n"),
+    html: shell(lines, { label: "Open my records release form", url: args.formUrl }),
+    sms: `Launchpad: next, sign your records release form (about 5 min): ${args.formUrl}`,
+  };
+}
+
+/** Student: their parent/guardian signed Step 2. */
+export function parentFormSigned(
+  ctx: TemplateContext,
+  args: { parentName: string },
+): RenderedMessage {
+  const lines = [
+    `Hi ${ctx.firstName},`,
+    `Good news — ${args.parentName} signed your parent/guardian form, so Step 2 of your application is complete.`,
+    `Check your application to see what's left.`,
+    signOff(ctx.contactEmail),
+  ];
+  return {
+    template: "parent_form_signed",
+    subject: "Your parent/guardian form is in",
+    text: lines.join("\n\n"),
+    html: shell(lines, { label: "View my application", url: ctx.portalUrl }),
+    sms: `Launchpad: ${args.parentName} signed your parent/guardian form — Step 2 is complete. ${ctx.portalUrl}`,
+  };
+}
+
+/** Student: staff flagged a C2L step as incomplete, with what to fix. */
+export function c2lFlagged(
+  ctx: TemplateContext,
+  args: { stepNumber: number; stepName: string; note: string },
+): RenderedMessage {
+  const lines = [
+    `Hi ${ctx.firstName},`,
+    `We checked Step ${args.stepNumber} (${args.stepName}) against C2LPHL's records and something still needs fixing:`,
+    `<strong>${escapeHtml(args.note)}</strong>`,
+    `Once it's fixed on C2LPHL's site, go back to Step ${args.stepNumber} in your application and report it again so we can re-check.`,
+    signOff(ctx.contactEmail),
+  ];
+  return {
+    template: `c2l_step${args.stepNumber}_flagged`,
+    subject: `Action needed: Step ${args.stepNumber} (${args.stepName})`,
+    text: lines.join("\n\n").replace(/<\/?strong>/g, ""),
+    html: shell(lines, { label: `Open Step ${args.stepNumber}`, url: ctx.portalUrl }),
+    sms: `Launchpad: action needed on Step ${args.stepNumber} (${args.stepName}). Details in your application: ${ctx.portalUrl}`,
+  };
+}
+
+/** Student: staff verified a C2L step. Email only. */
+export function c2lVerified(
+  ctx: TemplateContext,
+  args: { stepNumber: number; stepName: string },
+): RenderedMessage {
+  const lines = [
+    `Hi ${ctx.firstName},`,
+    `We've verified Step ${args.stepNumber} (${args.stepName}) with C2LPHL — there's nothing more for you to do on it.`,
+    signOff(ctx.contactEmail),
+  ];
+  return {
+    template: `c2l_step${args.stepNumber}_verified`,
+    subject: `Verified: Step ${args.stepNumber} (${args.stepName})`,
+    text: lines.join("\n\n"),
+    html: shell(lines, { label: "View my application", url: ctx.portalUrl }),
+  };
+}
+
+/** Student: their phone interview has been recorded. Email only. */
+export function interviewComplete(ctx: TemplateContext): RenderedMessage {
+  const lines = [
+    `Hi ${ctx.firstName},`,
+    `Thanks for talking with us — your interview is complete, and Step 4 of your application is marked done.`,
+    `If anything else is still open in your application, you'll see it in your portal.`,
+    signOff(ctx.contactEmail),
+  ];
+  return {
+    template: "interview_complete",
+    subject: "Your Launchpad interview is complete",
+    text: lines.join("\n\n"),
+    html: shell(lines, { label: "View my application", url: ctx.portalUrl }),
+  };
+}
+
+/** Student: a step is due within the week and isn't done. */
+export function deadlineReminder(
+  ctx: TemplateContext,
+  args: { stepNumber: number; stepName: string; due: string; what: string },
+): RenderedMessage {
+  const lines = [
+    `Hi ${ctx.firstName},`,
+    `A reminder that Step ${args.stepNumber} (${args.stepName}) is due <strong>${args.due}</strong> and isn't finished yet. ${args.what}`,
+    `Your answers save as you go, so you can pick up right where you left off.`,
+    signOff(ctx.contactEmail),
+  ];
+  return {
+    template: `step${args.stepNumber}_due_reminder`,
+    subject: `Due ${args.due}: Step ${args.stepNumber} (${args.stepName})`,
+    text: lines.join("\n\n").replace(/<\/?strong>/g, ""),
+    html: shell(lines, { label: `Finish Step ${args.stepNumber}`, url: ctx.portalUrl }),
+    sms: `Launchpad: Step ${args.stepNumber} (${args.stepName}) is due ${args.due}. Finish it here: ${ctx.portalUrl}`,
+  };
+}
+
+/** Staff notes and student names are user text — escape before putting in HTML. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }

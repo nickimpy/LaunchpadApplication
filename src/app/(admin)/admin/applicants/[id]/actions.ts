@@ -1,5 +1,7 @@
 "use server";
 
+import { resendParentInvite } from "@/utils/notify/triggers";
+import { getOrigin } from "@/utils/origin";
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -262,4 +264,39 @@ export async function reopenCollegeFlag(
   revalidatePath(`/admin/applicants/${applicationId}`);
   revalidatePath("/admin/applicants");
   return { success: "Flag reopened." };
+}
+
+/**
+ * Staff button: email + text the parent form link to the guardian(s) on file
+ * again (or, for an 18+ self-signer, their records release link to them).
+ * Deliberately manual — editing a guardian never auto-sends, so a typo fix
+ * doesn't spam the wrong person. Logged in notification_log and the audit log.
+ */
+export async function resendParentLink(
+  applicationId: string,
+  _prev: AdminFormState,
+): Promise<AdminFormState> {
+  const admin = await getAdminUser();
+  if (!admin) return { error: DENIED };
+
+  const { sentTo, selfRelease } = await resendParentInvite(
+    applicationId,
+    await getOrigin(),
+  );
+
+  await logAdminAction({
+    actor: admin,
+    action: "parent_link.resend",
+    entityType: "application",
+    entityId: applicationId,
+    after: { recipients: sentTo, self_release: selfRelease },
+  });
+
+  revalidatePath(`/admin/applicants/${applicationId}`);
+  if (selfRelease) return { success: "Sent the records release link to the student." };
+  if (sentTo === 0)
+    return { error: "There's no guardian email or phone on file to send to. Add one below first." };
+  return {
+    success: `Sent the parent form link to ${sentTo} ${sentTo === 1 ? "guardian" : "guardians"}. See "Messages" below for delivery.`,
+  };
 }

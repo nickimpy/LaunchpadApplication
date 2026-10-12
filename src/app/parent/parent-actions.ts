@@ -1,5 +1,7 @@
 "use server";
 
+import { onParentFormSigned } from "@/utils/notify/triggers";
+import { after as afterResponse } from "next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -271,6 +273,11 @@ export async function submitParentForm(
       values: v,
     };
   }
+
+  // Tell the student their parent signed (skipped for 18+ self-signers).
+  const origin = await getOrigin();
+  const parentName = `${v.parent_first_name} ${v.parent_last_name}`.trim();
+  afterResponse(() => onParentFormSigned(applicationId, parentName, origin));
 
   return { submitted: true };
 }

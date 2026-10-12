@@ -81,7 +81,14 @@ async function sendViaSmtp(
 // ---------------------------------------------------------------------------
 
 export async function sendEmail(message: EmailMessage): Promise<SendResult> {
-  const from = process.env.EMAIL_FROM ?? "Launchpad Philly <apply@launchpadphilly.org>";
+  // Gmail rejects a From address the logged-in account doesn't own, so with
+  // SMTP the safe default is the sending account itself. (apply@ is a Google
+  // Group — it can't be the sender; it's the Reply-To instead.)
+  const from =
+    process.env.EMAIL_FROM ??
+    (smtpConfigured()
+      ? `Launchpad Philly <${process.env.SMTP_USER}>`
+      : "Launchpad Philly <portal@launchpadphilly.org>");
   // Replies should reach a human, not the sending robot — so they go to the
   // apply@ group while mail is sent by a dedicated account.
   const replyTo = process.env.EMAIL_REPLY_TO;
@@ -112,6 +119,25 @@ export async function sendEmail(message: EmailMessage): Promise<SendResult> {
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "email failed" };
   }
+}
+
+/** Which email provider is live, for the notification log. */
+export function emailProvider(): "smtp" | "resend" | null {
+  if (smtpConfigured()) return "smtp";
+  if (process.env.RESEND_API_KEY) return "resend";
+  return null;
+}
+
+/**
+ * Phone numbers are stored as typed ("(215) 555-1234"); carriers need E.164
+ * ("+12155551234"). US numbers only — anything else is returned as null and the
+ * text is skipped (and logged) rather than sent somewhere unexpected.
+ */
+export function toE164(phone: string): string | null {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  return null;
 }
 
 // ---------------------------------------------------------------------------

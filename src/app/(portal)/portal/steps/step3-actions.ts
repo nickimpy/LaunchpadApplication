@@ -1,5 +1,8 @@
 "use server";
 
+import { onStep3Submitted } from "@/utils/notify/triggers";
+import { getOrigin } from "@/utils/origin";
+import { after as afterResponse } from "next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -118,6 +121,10 @@ export async function saveStep3(
   if (intent === "submit") {
     const { error } = await setStepStatus(3, "complete");
     if (error) return { errors: { form: error }, values };
+    if (!wasComplete) {
+      const origin = await getOrigin();
+      afterResponse(() => onStep3Submitted(portal.applicationId, origin));
+    }
   } else if (!wasComplete) {
     // Saving moves a not-started step forward but never downgrades one that is
     // already complete.

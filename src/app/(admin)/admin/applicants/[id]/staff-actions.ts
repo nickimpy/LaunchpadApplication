@@ -1,5 +1,8 @@
 "use server";
 
+import { onC2LReviewed, onDecisionReleased } from "@/utils/notify/triggers";
+import { getOrigin } from "@/utils/origin";
+import { after as afterResponse } from "next/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
@@ -94,6 +97,16 @@ export async function reviewC2LStep(
     before,
     after: { step_number: stepNumber, status, staff_note: staffNote.trim() || null },
   });
+
+  // Tell the student — only when the outcome actually changed, so re-saving a
+  // note doesn't re-send. Moving back to "pending" is internal; no message.
+  if (outcome !== "pending" && before?.status !== status) {
+    const origin = await getOrigin();
+    const note = staffNote.trim();
+    const step = stepNumber as 5 | 6; // isC2LStep checked above
+    const result = outcome as "verified" | "incomplete";
+    afterResponse(() => onC2LReviewed(applicationId, step, result, note, origin));
+  }
 
   revalidatePath(`/admin/applicants/${applicationId}`);
   const messages: Record<C2LOutcome, string> = {
@@ -205,6 +218,13 @@ export async function releaseDecision(
     after: { status: decision.status },
   });
 
+  // The decision email/text: says a decision is ready, never what it is.
+  const origin = await getOrigin();
+  afterResponse(() => onDecisionReleased(applicationId, origin));
+
   revalidatePath(`/admin/applicants/${applicationId}`);
-  return { success: "Decision released — the student can now see it in their portal." };
+  return {
+    success:
+      "Decision released — the student can now see it in their portal, and has been sent an email/text telling them it's ready.",
+  };
 }

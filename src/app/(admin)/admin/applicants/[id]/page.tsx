@@ -57,6 +57,34 @@ function Field({ label, value }: { label: string; value: unknown }) {
   );
 }
 
+// Plain-English names for notification templates (see utils/notify/templates.ts).
+const MESSAGE_LABELS: Record<string, string> = {
+  step1_complete: "Step 1 received",
+  step3_complete: "Step 3 received",
+  step5_complete: "C2L application reported",
+  step6_complete: "C2L documents reported",
+  parent_form_invite: "Parent form link",
+  parent_form_reminder: "Parent form reminder",
+  self_release_invite: "Records release link",
+  parent_form_signed: "Parent signed (to student)",
+  c2l_step5_flagged: "Step 5 flagged",
+  c2l_step6_flagged: "Step 6 flagged",
+  c2l_step5_verified: "Step 5 verified",
+  c2l_step6_verified: "Step 6 verified",
+  interview_complete: "Interview complete",
+  decision_ready: "Decision ready",
+  start_application_reminder: "Reminder: start your application",
+  step2_reminder: "Reminder: Step 2",
+  step3_reminder: "Reminder: short answers",
+};
+
+const MESSAGE_STATUS: Record<string, string> = {
+  sent: "Sent",
+  failed: "Failed",
+  dry_run: "Test mode (not actually sent)",
+  deferred: "Waiting for 9am (texts don't go out overnight)",
+};
+
 export default async function ApplicantProfilePage({ params }: { params: Params }) {
   const profile = await getApplicantProfile((await params).id);
   if (!profile) notFound();
@@ -322,6 +350,43 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
               url={profile.parentLinkUrl}
               submitted={parentSubmitted}
             />
+          </Card>
+
+          <Card title="Messages sent">
+            <p className="mb-3 text-xs">
+              Every email and text the portal has sent (or tried to) for this
+              application. &ldquo;Test mode&rdquo; means sending isn&apos;t
+              switched on yet; &ldquo;Waiting&rdquo; texts go out at the next
+              10am run (texts only send 9am–8pm).
+            </p>
+            {profile.messages.length === 0 ? (
+              <p className="text-xs">Nothing sent yet.</p>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {profile.messages.map((m) => (
+                  <li key={m.id} className="border-b border-grey-tint3 pb-3 text-xs last:border-0">
+                    <span className="font-bold">{MESSAGE_LABELS[m.template] ?? m.template.replace(/_/g, " ")}</span>
+                    {" · "}
+                    {m.channel === "sms" ? "Text" : "Email"} to {m.recipient}
+                    <span className="block">
+                      {formatDateTime(m.sentAt)} ·{" "}
+                      <span
+                        className={
+                          m.status === "failed"
+                            ? "font-bold text-orange-dark"
+                            : m.status === "sent"
+                              ? "text-green-dark"
+                              : ""
+                        }
+                      >
+                        {MESSAGE_STATUS[m.status] ?? m.status}
+                      </span>
+                      {m.error && ` — ${m.error}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           <Card title={app.self_release ? "Emergency contact (optional)" : "Guardian contacts"}>

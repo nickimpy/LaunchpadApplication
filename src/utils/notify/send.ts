@@ -6,6 +6,8 @@ import {
   emailDryRun,
   smsDryRun,
   smsProvider,
+  emailProvider,
+  toE164,
   type SendResult,
 } from "@/utils/notify/providers";
 import type { RenderedMessage } from "@/utils/notify/templates";
@@ -68,7 +70,7 @@ export async function notify(
       payload: {
         subject: channel === "email" ? message.subject : undefined,
         body: channel === "email" ? message.text : message.sms,
-        provider: channel === "sms" ? smsProvider() : dryRun ? null : "resend",
+        provider: dryRun ? null : channel === "sms" ? smsProvider() : emailProvider(),
         error: result.ok ? undefined : result.error,
       },
     });
@@ -88,9 +90,32 @@ export async function notify(
   // Only send an SMS when the template actually has one — several messages are
   // too long to be a sensible text and are email-only by design.
   if (wantsSms && recipient.phone && message.sms) {
-    const dryRun = smsDryRun();
-    const result = await sendSms({ to: recipient.phone, body: message.sms });
-    await record("sms", recipient.phone, result, dryRun);
+    const to = toE164(recipient.phone);
+    if (!to) {
+      await record(
+        "sms",
+        recipient.phone,
+        { ok: false, error: "Not a valid US phone number — text skipped" },
+        false,
+      );
+    } else if (inSmsQuietHours()) {
+      // Texts only go out 9am–8pm Eastern. Park it; the morning cron run sends
+      // every deferred text (see sendDeferredSms).
+      await supabase.from("notification_log").insert({
+        student_id: recipient.studentId ?? null,
+        application_id: recipient.applicationId ?? null,
+        recipient: to,
+        channel: "sms",
+        template: message.template,
+        trigger_event: triggerEvent,
+        status: "deferred",
+        payload: { body: message.sms },
+      });
+    } else {
+      const dryRun = smsDryRun();
+      const result = await sendSms({ to, body: message.sms });
+      await record("sms", to, result, dryRun);
+    }
   }
 
   return { sent, failed, dryRun: anyDryRun };
@@ -114,4 +139,54 @@ export async function alreadySent(
     .not("status", "eq", "failed")
     .limit(1);
   return Boolean(data?.length);
+}
+
+/** True outside 9am–8pm in Philadelphia (America/New_York, DST-aware). */
+export function inSmsQuietHours(now: Date = new Date()): boolean {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone: "America/New_York",
+    }).format(now),
+  );
+  return hour < 9 || hour >= 20;
+}
+
+/**
+ * Sends every text that was parked during quiet hours. Run by the morning
+ * cron. Each row is updated in place to sent/failed so it's never sent twice.
+ */
+export async function sendDeferredSms(): Promise<{ sent: number; failed: number }> {
+  const supabase = createAdminClient();
+  const { data: rows } = await supabase
+    .from("notification_log")
+    .select("id, recipient, payload")
+    .eq("channel", "sms")
+    .eq("status", "deferred")
+    .limit(500);
+
+  let sent = 0;
+  let failed = 0;
+  for (const row of rows ?? []) {
+    const body = (row.payload as { body?: string } | null)?.body;
+    if (!body) continue;
+    const dryRun = smsDryRun();
+    const result = await sendSms({ to: row.recipient as string, body });
+    if (result.ok) sent += 1;
+    else failed += 1;
+    await supabase
+      .from("notification_log")
+      .update({
+        status: dryRun ? "dry_run" : result.ok ? "sent" : "failed",
+        sent_at: new Date().toISOString(),
+        payload: {
+          ...(row.payload as object),
+          provider: dryRun ? null : smsProvider(),
+          error: result.ok ? undefined : result.error,
+        },
+      })
+      .eq("id", row.id as number);
+  }
+  return { sent, failed };
 }

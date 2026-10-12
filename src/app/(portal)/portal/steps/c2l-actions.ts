@@ -1,5 +1,8 @@
 "use server";
 
+import { onC2LReported } from "@/utils/notify/triggers";
+import { getOrigin } from "@/utils/origin";
+import { after as afterResponse } from "next/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getPortalData, setStepStatus } from "@/utils/step-engine";
@@ -45,6 +48,14 @@ export async function reportC2LStep(
     reported ? "pending_verification" : "in_progress",
   );
   if (error) return { error };
+
+  // Confirm a fresh report (including a re-report after staff flagged it), not
+  // a re-save of one already waiting for review.
+  if (reported && step.status !== "pending_verification") {
+    const origin = await getOrigin();
+    const step = stepNumber as 5 | 6; // isC2LStep checked above
+    afterResponse(() => onC2LReported(portal.applicationId, step, origin));
+  }
 
   revalidatePath("/portal", "layout");
 

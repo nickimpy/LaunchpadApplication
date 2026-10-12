@@ -60,6 +60,16 @@ export type ApplicantProfile = {
   notes: ProfileNote[];
   audit: AuditEntry[];
   parentLinkUrl: string;
+  /** Every email/text sent (or tried) for this application, newest first. */
+  messages: {
+    id: number;
+    sentAt: string;
+    channel: string;
+    recipient: string;
+    template: string;
+    status: string;
+    error: string | null;
+  }[];
   /** Staff member who resolved the college-plan flag, if it has been. */
   collegeFlagResolvedBy: string | null;
   interview: {
@@ -108,6 +118,7 @@ export async function getApplicantProfile(
     { data: audit },
     { data: interview },
     { data: decision },
+    { data: messageRows },
   ] = await Promise.all([
     supabase
       .from("guardians")
@@ -154,6 +165,12 @@ export async function getApplicantProfile(
       .select("status, notes, decided_at, released_at")
       .eq("application_id", applicationId)
       .maybeSingle(),
+    supabase
+      .from("notification_log")
+      .select("id, sent_at, channel, recipient, template, status, payload")
+      .eq("application_id", applicationId)
+      .order("sent_at", { ascending: false })
+      .limit(100),
   ]);
 
   const statuses: Record<number, StepStatus> = {};
@@ -283,6 +300,15 @@ export async function getApplicantProfile(
     })),
     parentLinkUrl: `${origin}/parent/${application.parent_link_token}`,
     collegeFlagResolvedBy,
+    messages: (messageRows ?? []).map((m) => ({
+      id: m.id as number,
+      sentAt: m.sent_at as string,
+      channel: m.channel as string,
+      recipient: m.recipient as string,
+      template: m.template as string,
+      status: m.status as string,
+      error: ((m.payload as { error?: string } | null)?.error as string | undefined) ?? null,
+    })),
     interview: {
       recorded: Boolean(interview),
       interviewDate: (interview?.interview_date as string) ?? null,

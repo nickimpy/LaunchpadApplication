@@ -1,5 +1,8 @@
 "use server";
 
+import { after as afterResponse } from "next/server";
+import { getOrigin } from "@/utils/origin";
+import { onC2LReviewed } from "@/utils/notify/triggers";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
@@ -67,6 +70,8 @@ export async function bulkApply(
       .select("application_id, status, submitted_at")
       .in("application_id", ids)
       .eq("step_number", stepNumber);
+    const origin = await getOrigin();
+    const notifyQueue: string[] = [];
 
     for (const row of rows ?? []) {
       // Only touch steps the student has actually reported: marking an
@@ -90,6 +95,10 @@ export async function bulkApply(
         return { error: stopped(changed, error, "update the C2L step") };
       }
       changed += 1;
+      // Same rule as the single review: only tell the student when it changed.
+      if (row.status !== (verifying ? "complete" : "needs_attention")) {
+        notifyQueue.push(row.application_id as string);
+      }
       await logAdminAction({
         actor: admin,
         action: verifying ? "c2l.review.verified" : "c2l.review.incomplete",
@@ -97,6 +106,16 @@ export async function bulkApply(
         entityId: row.application_id as string,
         before: { status: row.status },
         after: { step_number: stepNumber, bulk: true },
+      });
+    }
+    if (notifyQueue.length) {
+      const step = stepNumber as 5 | 6;
+      const result = verifying ? "verified" : "incomplete";
+      const message = note.trim();
+      afterResponse(async () => {
+        for (const id of notifyQueue) {
+          await onC2LReviewed(id, step, result, message, origin);
+        }
       });
     }
   }
