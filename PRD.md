@@ -2,7 +2,7 @@
 
 > Source of truth: Notion page "Launchpad Application System -- PRD" (last synced June 10, 2026). This local copy exists so Claude Code can read the full spec. If the two drift, Notion wins.
 >
-> **Revised October 6, 2026 for the 2027-28 cohort** (this copy is AHEAD of Notion until the Notion page is updated): Foundations is the only program; applicants must be 22 or younger at program start; Step 1 loses the program selector and career-interest question and gains pathway info; applicants 18+ can sign their own records release; the parent form, Step 3 questions, Step 4-7 copy and all deadlines are updated. See "2027-28 changes" at the end for the full list.
+> **Revised October 6–12, 2026 for the 2027-28 cohort** (this copy is AHEAD of Notion until the Notion page is updated): Foundations is the only program; applicants must be 22 or younger at program start; Step 1 loses the program selector and career-interest question and gains pathway info; applicants 18+ can sign their own records release; the parent form, Step 3 questions, Step 4-7 copy and all deadlines are updated. See "2027-28 changes" at the end for the full list.
 
 ## Overview
 
@@ -204,16 +204,16 @@ The questions are **hard-coded** (`STEP3_QUESTIONS` in `src/utils/step3-options.
 
 ## Step Deadlines (2027-28 cycle)
 
-Stored in `cycle_settings.step_deadlines` and shown on each step:
+Stored in `cycle_settings.step_deadlines`, shown on each step, and **editable by staff on the admin Settings page**:
 
 | Step | Due |
 |---|---|
 | 1 Student Information | February 15, 2027 |
-| 2 Parent / Guardian Form | January 31, 2027 *(placeholder — confirm)* |
-| 3 Short Answer Questions | January 31, 2027 *(placeholder — confirm)* |
+| 2 Parent / Guardian Form | February 15, 2027 |
+| 3 Short Answer Questions | February 15, 2027 |
 | 4 Interview | April 1, 2027 |
 | 5 C2LPHL Application | March 30, 2027 |
-| 6 C2LPHL Required Documents | March 15, 2027 *(placeholder — confirm)* |
+| 6 C2LPHL Required Documents | May 1, 2027 |
 | 7 Admissions Decision | May 1, 2027 |
 
 ## Embedding in WordPress
@@ -258,11 +258,19 @@ Reminders run once a day (~10am ET) via Vercel Cron and stop once any decision i
 
 **Student profile:** view all submissions; upload docs (transcript, attendance, IEP/504); log interviews; verify Steps 5-6; copy/re-send parent link; update guardian contact; general notes; record decision + trigger decision email.
 
-**Pipeline dashboard:** funnel counts by step, completed vs. outstanding.
+**Pipeline dashboard:** status counts by step (every number links to that filtered list); "Where applicants are" — each applicant counted once on the earliest step they haven't completed, so the longest bar is the bottleneck; applicants by school (ranked, searchable).
 
-## Public / Shareable Student Link
+**Applicant table:** sortable column headers; filters for search, school, current step, and step+status; CSV export honours the filters.
 
-Unique non-login URL per student, never expires. Shows: name, steps complete/outstanding, current step. Hides all application content and PII. For decisions, show "Decision pending" until released (proposed).
+**College-plan flag:** staff resolve it on the profile with a required note (who/when/why shown, audit-logged, reopenable); a Step 1 change that re-raises it clears the old resolution.
+
+**Settings page (`/admin/settings`, all staff):** contact email, cohort name, program start date + maximum age, summer dates/location, C2L links, the parent "learn more" text, both consent texts, and all step due dates. Validated, audit-logged with before/after. Consent edits only affect new signers — signed forms keep the snapshot they agreed to.
+
+**Interview rubric:** the 7 criteria, score labels and pathway options live in code (`src/utils/interview-options.ts`), not in Settings. Final wording from "Launchpad Interview Process & Applicant Rubric 2026" still needs to replace the PRD-summary placeholders.
+
+## Public / Shareable Student Link — DEFERRED (not in launch)
+
+Decided October 2026 to skip for launch (about an hour to build later; `students.public_token` already exists). Spec when built: unique non-login URL per student, never expires. Shows: name, steps complete/outstanding, current step. Hides all application content and PII. For decisions, show "Decision pending" until released (proposed).
 
 ## Brand & Design (Building 21 Style Guide)
 
@@ -275,6 +283,8 @@ Unique non-login URL per student, never expires. Shows: name, steps complete/out
 | Green (accent) | #8eb651 | #aac87d, #c6daa8, #e3edd3 | #658639 |
 | Grey (text/UI) | #67686a | #b6b7ba, #d9d9da, #e8e8e9, #f7f7f7 | - |
 
+**Accessibility adjustment (Oct 2026):** the dark/text shades used in the app are deepened slightly from the table above so all text passes WCAG AA — teal-dark #096e80, orange-dark #9a501e, green-dark #516c2e, grey #636466. Same hues; fills and tints unchanged.
+
 **Typography:** Arial (system sans-serif stack) for web per the guide. Headings Arial Bold, body Arial Regular, captions Arial Italic. Font sizes in multiples of 3 (body 15px; headings 18/24/30/36/42). 1.3 line height. Never underline non-links.
 
 **Logo:** brand/launchpad-logo-main-color.svg (rocket-trail mark + "Launchpad" wordmark). Never stretch, recolor, rotate, or modify.
@@ -286,25 +296,47 @@ Unique non-login URL per student, never expires. Shows: name, steps complete/out
 - Parental consent handled via parent form consent + e-signature
 - Strive for maximum WCAG compliance on public-facing surfaces
 
+## Security & Abuse Protection (added October 2026)
+
+- **Row-level security + column guards:** RLS limits students to their own rows; database triggers (migration 0011) additionally stop a student's own login from changing protected fields — the 18+ self-release flag, college flag and its resolution, date of birth, login email (except mirroring their verified email), verified C2L steps, staff notes. The server writes those after its own checks. Students cannot insert students/applications/step rows.
+- **Decisions** are invisible to students at the database level until released.
+- **Parent form** is reached only by an unguessable token; a database hiccup is never reported as a bad link; the token is never sent as a referrer.
+- **Injection:** all email HTML is escaped (only the app's own bold tags survive); names reject links, emails and markup — so nobody can use Launchpad's address or number to deliver phishing.
+- **Bots & spam:** signup honeypot; per-recipient caps (8 emails / 5 texts per day) and a global cap (400 texts/day, `SMS_DAILY_CAP`), logged as "capped". Supabase Auth rate limits apply to signup and email sends.
+- **Open redirects** closed on `/auth/callback` and `/auth/confirm`.
+- **Headers:** no framing (clickjacking), nosniff, strict referrer policy, permissions policy, HSTS.
+- **Every staff action and file route re-checks staff access** (verified 2026-10-12).
+- **Recommended next:** Cloudflare Turnstile CAPTCHA on signup/login (free; needs a Cloudflare site key + secret, then Supabase Auth → Bot protection).
+
+## Accessibility (WCAG 2.1 AA review, October 2026)
+
+All text/background pairs meet 4.5:1 (brand dark shades deepened slightly to pass — see globals.css); labels on every field with errors tied via aria-describedby; status never by colour alone; keyboard-operable signature (typed-name fallback); skip links; reduced-motion respected; no horizontal scroll at 375px; 48px touch targets in the mobile step strip.
+
 ## Out of Scope (MVP)
 
 School partner dashboard; automated C2LPHL report ingestion; native interview scheduling (fallback OK for v1); parent accounts; hard deadline enforcement; live data warehouse and SIS integration.
 
-## Open Items (resolvable during build)
+## Open Items
 
-- Full short answer questions + scaffolding (beta uses single prompt)
-- Admin spreadsheet columns to inform table design
-- Step deadlines: who sets, per-program, admin-configurable?
-- Portal domain (e.g., apply.launchpadphilly.org) + DNS, Resend SPF/DKIM
-- Twilio A2P 10DLC registration check + exact "reply Y" flow
-- Create apply@launchpadphilly.org mailbox (now the public contact address on every step)
-- Review the draft first-person records-release consent (`student_release_consent_text`) before launch
-- Confirm deadlines for Steps 2, 3, and 6 (still placeholders; Steps 2-3 currently fall before Step 1's Feb 15 due date)
-- Confirm step dependency map (proposed: Step 1 unlocks 2-6; 2-6 parallel; 7 admin-only)
-- Decision email trigger UX (per-student, bulk, or both)
-- Edit-after-submit status behavior
-- Whether editing guardian info auto re-triggers the parent email
-- Consent language review before launch
+Still open:
+
+- Final interview rubric wording (criteria, score anchors) in `src/utils/interview-options.ts`
+- Legal review of the 18+ first-person consent (`student_release_consent_text`)
+- Portal domain `apply.launchpadphilly.org` (Vercel domain + CNAME from Building 21; update Supabase Site URL/redirects)
+- Optional: Cloudflare Turnstile CAPTCHA (see Security)
+- Optional: public status link (deferred), school-list management screen, dashboard "needs action" list, cycle archive export
+
+Resolved (October 2026):
+
+- Short answer questions — three hard-coded questions, 50–150 words
+- Step dependency map — Step 1 unlocks 2–6 (parallel); 7 staff-only
+- Step deadlines — staff-editable on the Settings page
+- Decision email — per student, sent when staff release the decision
+- Guardian edits never auto-resend; staff use "Email + text it to them"
+- SMS consent — website preference field; no "reply Y"; Twilio A2P registered
+- apply@ exists (Google Group, Reply-To); sending account is portal@
+- Parent consent language — final text in place (editable in Settings)
+- Edit-after-submit — students can keep editing Steps 1 and 3; status stays complete
 
 ## 2027-28 changes (October 6, 2026)
 
