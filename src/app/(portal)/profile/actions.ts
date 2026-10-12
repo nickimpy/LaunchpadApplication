@@ -60,8 +60,9 @@ export async function updateProfile(
   }
   if (Object.keys(errors).length > 0) return { errors };
 
-  const { tooOld, maxAge } = await isTooOldToEnroll(values.date_of_birth);
-  if (tooOld) return { errors: { date_of_birth: ageIneligibleText(maxAge) } };
+  const { tooOld, maxAge, ageAtStart } = await isTooOldToEnroll(values.date_of_birth);
+  if (tooOld)
+    return { errors: { date_of_birth: ageIneligibleText(maxAge, ageAtStart) } };
 
   const { error: updateError } = await supabase
     .from("students")

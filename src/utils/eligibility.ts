@@ -4,6 +4,7 @@ import {
   DEFAULT_MAX_ENROLLMENT_AGE,
   DEFAULT_PROGRAM_START_DATE,
   exceedsMaxAge,
+  ageOn,
 } from "@/utils/age";
 
 export type AgeRule = { programStart: string; maxAge: number };
@@ -50,10 +51,13 @@ export async function getAgeRule(): Promise<AgeRule> {
 export async function isTooOldToEnroll(dob: string): Promise<{
   tooOld: boolean;
   maxAge: number;
+  /** Age on the program start date — picks which follow-up line they see. */
+  ageAtStart: number;
 }> {
   const rule = await getAgeRule();
   return {
     tooOld: exceedsMaxAge(dob, rule.programStart, rule.maxAge),
     maxAge: rule.maxAge,
+    ageAtStart: ageOn(dob, rule.programStart) ?? 0,
   };
 }

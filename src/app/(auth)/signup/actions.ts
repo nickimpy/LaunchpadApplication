@@ -25,7 +25,7 @@ export type SignupState = {
   values?: Record<string, string>;
   duplicate?: boolean;
   /** Set (to the cycle's max age) when the date of birth is too old to enroll. */
-  ageIneligible?: number;
+  ageIneligible?: { maxAge: number; ageAtStart: number };
 };
 
 export async function signup(
@@ -62,10 +62,10 @@ export async function signup(
   // Eligibility is measured at enrollment (program start), not today. Checked
   // before the duplicate lookup and before any account exists, so an applicant
   // who is too old is told why instead of being created and left stranded.
-  const { tooOld, maxAge } = await isTooOldToEnroll(values.date_of_birth);
+  const { tooOld, maxAge, ageAtStart } = await isTooOldToEnroll(values.date_of_birth);
   if (tooOld) {
     return {
-      ageIneligible: maxAge,
+      ageIneligible: { maxAge, ageAtStart },
       errors: { date_of_birth: "This date of birth isn't eligible — see the note above." },
       values: safeValues,
     };
