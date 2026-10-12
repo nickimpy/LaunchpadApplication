@@ -60,6 +60,12 @@ export default async function AdminLayout({
               >
                 Applicants
               </Link>
+              <Link
+                className="font-bold text-teal-dark hover:underline"
+                href="/admin/settings"
+              >
+                Settings
+              </Link>
               {admin.isSuperAdmin && (
                 <Link
                   className="font-bold text-teal-dark hover:underline"
