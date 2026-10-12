@@ -19,6 +19,7 @@ import {
   type TemplateContext,
 } from "@/utils/notify/templates";
 import { STEPS, formatDeadline, getStepMeta, type StepStatus } from "@/utils/steps";
+import { STEP3_MAX_WORDS, STEP3_MIN_WORDS } from "@/utils/step3-options";
 
 // Every notification the app sends, one function per event (the full list is
 // in CLAUDE.md, "Notifications"). Callers fire-and-forget: each function loads
@@ -303,7 +304,7 @@ const daysSince = (iso: string | null | undefined, now: number) =>
 const DUE_WHAT: Record<number, string> = {
   1: "It unlocks the rest of your application.",
   2: "Your parent or guardian's form (or your own records release) still needs signing.",
-  3: "Three short written questions, 50–250 words each.",
+  3: `Three short written questions, ${STEP3_MIN_WORDS}–${STEP3_MAX_WORDS} words each.`,
   5: "Apply on c2lphl.org, then report it in your application.",
   6: "Upload your documents on C2LPHL, then report it in your application.",
 };
@@ -389,7 +390,7 @@ export async function runDailyReminders(origin: string): Promise<Record<string, 
             stepReminder(l.ctx, {
               number: 3,
               name: "Short Answer Questions",
-              what: "three short written questions, 50–250 words each.",
+              what: `three short written questions, ${STEP3_MIN_WORDS}–${STEP3_MAX_WORDS} words each.`,
             }),
             "reminder_step3",
           ),

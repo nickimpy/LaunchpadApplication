@@ -17,7 +17,7 @@ export const STEP3_QUESTIONS = [
 ] as const;
 
 export const STEP3_MIN_WORDS = 50;
-export const STEP3_MAX_WORDS = 250;
+export const STEP3_MAX_WORDS = 150;
 
 export function countWords(value: string): number {
   const trimmed = value.trim();
