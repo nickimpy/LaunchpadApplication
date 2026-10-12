@@ -33,24 +33,24 @@ export function PortalHero({ name }: { name: string }) {
 }
 
 /**
- * A short, full-width crop of the banner for the top of every application
- * page (portal + login/signup). Cropped to a thin band centred on the
- * students' faces so it adds warmth without pushing the form down. Decorative
- * here (alt=""): the same photo is described in full on the landing page, and
- * repeating that description on every page would be noise for screen readers.
+ * The banner at the top of every application page (portal + login/signup).
+ * Never cropped: it renders at the photo's own 4:1 shape and takes the width
+ * of whatever column it sits in. (A full-width strip had to crop a 4:1 photo
+ * to ~15:1 on desktop, which cut off the students' heads.) Decorative here
+ * (alt=""): the same photo is described in full on the landing page, and
+ * repeating that on every page would be noise for screen readers.
  */
-export function BannerStrip() {
+export function BannerStrip({ className = "" }: { className?: string }) {
   return (
-    <div className="relative h-24 w-full overflow-hidden sm:h-32" aria-hidden="true">
-      <Image
-        src={BANNER.src}
-        alt=""
-        fill
-        sizes="100vw"
-        priority
-        // 62% down keeps faces and pennants in frame, not ceiling or clouds.
-        className="object-cover object-[50%_62%]"
-      />
-    </div>
+    <Image
+      src={BANNER.src}
+      alt=""
+      aria-hidden="true"
+      width={BANNER.width}
+      height={BANNER.height}
+      sizes="(min-width: 768px) 672px, 100vw"
+      priority
+      className={`h-auto w-full rounded-lg ${className}`}
+    />
   );
 }

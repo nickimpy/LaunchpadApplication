@@ -70,11 +70,13 @@ export default async function PortalLayout({
           </form>
         </div>
       </header>
-      <BannerStrip />
       <div className="flex flex-1 flex-col md:flex-row">
         <StepNav steps={data.steps} completedCount={data.completedCount} />
         <main id="portal-content" className="min-w-0 flex-1 px-6 py-9">
-          <div className="mx-auto w-full max-w-2xl">{children}</div>
+          <div className="mx-auto w-full max-w-2xl">
+            <BannerStrip className="mb-9" />
+            {children}
+          </div>
         </main>
       </div>
     </div>

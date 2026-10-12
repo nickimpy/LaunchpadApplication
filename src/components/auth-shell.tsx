@@ -6,7 +6,6 @@ import { BannerStrip } from "@/components/portal/portal-hero";
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-grey-tint4">
-      <BannerStrip />
       <div className="flex flex-1 flex-col items-center px-6 py-12">
         <Link href="/" aria-label="Launchpad Philly home">
           <Image
@@ -17,7 +16,8 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             priority
           />
         </Link>
-        <main className="mt-9 w-full max-w-md rounded-lg bg-white p-6 shadow-sm">
+        <BannerStrip className="mt-9 max-w-md" />
+        <main className="mt-6 w-full max-w-md rounded-lg bg-white p-6 shadow-sm">
           {children}
         </main>
       </div>
