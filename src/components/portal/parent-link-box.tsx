@@ -39,9 +39,10 @@ export function ParentLinkBox({
         Your parent / guardian form link
       </h2>
       <p className="mb-3">
-        Share this link with your parent or guardian so they can complete Step 2.
-        No account needed. (We&apos;ll also email and text it to them
-        automatically once that feature is turned on.)
+        We&apos;ve emailed and texted this link to the parent or guardian you
+        listed in Step 1. You can also share it with them yourself — no account
+        needed. If it went to the wrong person, update their contact in Step 1
+        and email us, or create a new link below.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row">
         <input
