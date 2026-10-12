@@ -36,28 +36,38 @@ declare global {
 export function Turnstile({ resetOn }: { resetOn?: unknown }) {
   const box = useRef<HTMLDivElement | null>(null);
   const widgetId = useRef<string | null>(null);
-  const [ready, setReady] = useState(
-    () => typeof window !== "undefined" && Boolean(window.turnstile),
-  );
   const [token, setToken] = useState("");
 
-  // Render once the script is available.
+  // Render as soon as Cloudflare's script is available. Polls rather than
+  // relying on next/script's onReady, which never fired in the production
+  // build (found 2026-10-12: the script loaded but no widget was drawn).
   useEffect(() => {
-    if (!SITE_KEY || !ready || !box.current || !window.turnstile || widgetId.current) return;
-    widgetId.current = window.turnstile.render(box.current, {
-      sitekey: SITE_KEY,
-      // Hidden for most people; shows a simple checkbox only when Cloudflare
-      // is unsure. Never a picture puzzle.
-      appearance: "interaction-only",
-      callback: (t: string) => setToken(t),
-      "expired-callback": () => setToken(""),
-      "error-callback": () => setToken(""),
-    });
+    if (!SITE_KEY) return;
+    let cancelled = false;
+    let tries = 0;
+    const tryRender = () => {
+      if (cancelled || widgetId.current || !box.current) return;
+      if (!window.turnstile) {
+        if (tries++ < 100) setTimeout(tryRender, 100); // up to ~10s
+        return;
+      }
+      widgetId.current = window.turnstile.render(box.current, {
+        sitekey: SITE_KEY,
+        // Hidden for most people; shows a simple checkbox only when
+        // Cloudflare is unsure. Never a picture puzzle.
+        appearance: "interaction-only",
+        callback: (t: string) => setToken(t),
+        "expired-callback": () => setToken(""),
+        "error-callback": () => setToken(""),
+      });
+    };
+    tryRender();
     return () => {
+      cancelled = true;
       if (widgetId.current && window.turnstile) window.turnstile.remove(widgetId.current);
       widgetId.current = null;
     };
-  }, [ready]);
+  }, []);
 
   // Fresh token after each submit (the old one was spent).
   const first = useRef(true);
@@ -79,7 +89,6 @@ export function Turnstile({ resetOn }: { resetOn?: unknown }) {
       <Script
         src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
         strategy="afterInteractive"
-        onReady={() => setReady(true)}
       />
       <div ref={box} className="mb-3" />
       <input type="hidden" name={CAPTCHA_FIELD} value={token} />
