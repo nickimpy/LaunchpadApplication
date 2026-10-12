@@ -170,7 +170,7 @@ export function StepNav({
                 <Circle step={step} />
                 <span className="flex min-w-0 flex-col">
                   <span
-                    className={`text-base font-bold ${step.locked ? "text-grey-tint1" : "text-grey"}`}
+                    className={`text-base font-bold ${step.locked ? "text-grey" : "text-grey"}`}
                   >
                     {step.name}
                   </span>

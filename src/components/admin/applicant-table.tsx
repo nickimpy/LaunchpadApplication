@@ -70,7 +70,7 @@ function SortHeader({
         aria-label={`${label}: sort ${next}`}
       >
         {label}
-        <span aria-hidden="true" className={link.direction ? "text-teal-dark" : "text-grey-tint1"}>
+        <span aria-hidden="true" className={link.direction ? "text-teal-dark" : "text-grey-tint1" /* decorative, aria-hidden */}>
           {arrow}
         </span>
       </Link>
@@ -326,7 +326,7 @@ export function ApplicantTable({
                   )}
                 </th>
                 <td className="px-3 py-3">
-                  {r.schoolName || <span className="text-grey-tint1">—</span>}
+                  {r.schoolName || <span className="text-grey">—</span>}
                   {r.isPartnerSchool && (
                     <span className="block text-xs text-green-dark">Partner school</span>
                   )}

@@ -4,8 +4,8 @@ import { STEPS, STAGE_DONE, stageLabel } from "@/utils/steps";
 // "Where applicants are", rendered on the server as plain HTML — no chart
 // library, works with JavaScript off.
 //
-// Single-series magnitude view, so one hue (brand teal-dark, #0a8196 — 4.6:1 on
-// white, over the 3:1 a non-text mark needs) and no legend: the heading names
+// Single-series magnitude view, so one hue (teal-dark token, #096e80 — 5.9:1 on
+// white, well over the 3:1 a non-text mark needs) and no legend: the heading names
 // the series. Counts are printed in text ink beside each bar, so nothing depends
 // on reading a bar's length or colour. Each bar links to exactly the applicants
 // it counts, with a `title` tooltip and an aria-label reading the full sentence.

@@ -64,7 +64,7 @@ export default async function InterviewPage({
               <details key={e.prompt} className="mb-3">
                 <summary className="cursor-pointer font-bold">{e.prompt}</summary>
                 <p className="mt-3 whitespace-pre-line">
-                  {e.response || <span className="text-grey-tint1">(blank)</span>}
+                  {e.response || <span className="text-grey">(blank)</span>}
                 </p>
               </details>
             ))

@@ -178,7 +178,7 @@ export function SignaturePad({
         >
           Clear signature
         </button>
-        <span aria-live="polite" className="text-xs text-grey-tint1">
+        <span aria-live="polite" className="text-xs text-grey">
           {hasInk ? "Signature captured." : "Nothing drawn yet."}
         </span>
       </div>

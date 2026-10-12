@@ -80,7 +80,7 @@ export function C2LVerifyRow({
       </p>
 
       {!reported && (
-        <p className="mt-1 text-xs text-grey-tint1">
+        <p className="mt-1 text-xs text-grey">
           The student hasn&apos;t reported this yet.
         </p>
       )}
@@ -98,7 +98,7 @@ export function C2LVerifyRow({
             placeholder="e.g. Transcript uploaded but the attendance record is missing."
             className="mt-1 w-full rounded-md border border-grey-tint1 bg-white px-3 py-1 text-xs"
           />
-          <p className="mt-1 text-xs text-grey-tint1">
+          <p className="mt-1 text-xs text-grey">
             The student sees this on their step, so write it to them.
           </p>
           <div className="mt-3 flex flex-wrap gap-3">
@@ -226,19 +226,19 @@ export function InterviewSummary({
       {recorded ? (
         <dl className="mb-6">
           <div className="mb-3">
-            <dt className="text-xs font-bold uppercase tracking-wide text-grey-tint1">
+            <dt className="text-xs font-bold uppercase tracking-wide text-grey">
               Interviewed
             </dt>
             <dd>{interviewDate ?? "—"}</dd>
           </div>
           <div className="mb-3">
-            <dt className="text-xs font-bold uppercase tracking-wide text-grey-tint1">
+            <dt className="text-xs font-bold uppercase tracking-wide text-grey">
               Final rating
             </dt>
             <dd>{finalRating != null ? `${finalRating} of 3` : "Not decided yet"}</dd>
           </div>
           <div className="mb-3">
-            <dt className="text-xs font-bold uppercase tracking-wide text-grey-tint1">
+            <dt className="text-xs font-bold uppercase tracking-wide text-grey">
               Interviewer(s)
             </dt>
             <dd>{interviewers ?? "—"}</dd>

@@ -175,7 +175,7 @@ export default async function AdminDashboard() {
                           {counts[status]}
                         </Link>
                       ) : (
-                        <span className="text-grey-tint1">—</span>
+                        <span className="text-grey">—</span>
                       )}
                     </td>
                   ))}

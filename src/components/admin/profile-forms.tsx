@@ -292,7 +292,7 @@ export function NotesPanel({ profile }: { profile: ApplicantProfile }) {
           {profile.notes.map((note) => (
             <li key={note.id} className="rounded-md border border-grey-tint2 px-3 py-3">
               <p className="whitespace-pre-line">{note.body}</p>
-              <p className="mt-1 text-xs text-grey-tint1">
+              <p className="mt-1 text-xs text-grey">
                 {note.authorEmail} · {formatDateTime(note.createdAt)}
               </p>
             </li>

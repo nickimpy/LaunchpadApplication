@@ -6,7 +6,7 @@ import { NOTIFICATION_PREFERENCES } from "@/utils/validation";
 
 const inputBase =
   "mt-1 block w-full rounded-md border bg-white px-3 py-3 text-base text-grey " +
-  "placeholder:text-grey-tint1 focus:outline-none focus-visible:ring-2 " +
+  "placeholder:text-grey focus:outline-none focus-visible:ring-2 " +
   "focus-visible:ring-teal-dark";
 
 export function TextField({
@@ -45,7 +45,7 @@ export function TextField({
       <label htmlFor={name} className="block font-bold">
         {label}
         {optional && !readOnly && (
-          <span className="font-normal text-grey-tint1"> (optional)</span>
+          <span className="font-normal text-grey"> (optional)</span>
         )}
       </label>
       {hint && (
@@ -69,7 +69,7 @@ export function TextField({
         aria-describedby={
           [errorId, hintId].filter(Boolean).join(" ") || undefined
         }
-        className={`${inputBase} ${readOnly ? "bg-grey-tint4 text-grey-tint1" : ""} ${error ? "border-orange-dark" : "border-grey-tint1"}`}
+        className={`${inputBase} ${readOnly ? "bg-grey-tint4 text-grey" : ""} ${error ? "border-orange-dark" : "border-grey-tint1"}`}
       />
       {error && (
         <p id={errorId} className="mt-1 text-xs font-bold text-orange-dark">
@@ -149,7 +149,7 @@ export function SelectField({
       <label htmlFor={name} className="block font-bold">
         {label}
         {optional && (
-          <span className="font-normal text-grey-tint1"> (optional)</span>
+          <span className="font-normal text-grey"> (optional)</span>
         )}
       </label>
       {hint && (
@@ -217,7 +217,7 @@ export function RadioGroup({
       <legend className="font-bold">
         {legend}
         {optional && (
-          <span className="font-normal text-grey-tint1"> (optional)</span>
+          <span className="font-normal text-grey"> (optional)</span>
         )}
       </legend>
       {hint && (
@@ -344,7 +344,7 @@ export function Textarea({
       <label htmlFor={name} className="block font-bold">
         {label}
         {optional && (
-          <span className="font-normal text-grey-tint1"> (optional)</span>
+          <span className="font-normal text-grey"> (optional)</span>
         )}
       </label>
       {hint && (
@@ -508,7 +508,9 @@ export function useStatusFocus(token: unknown) {
     const node = ref.current;
     if (!node) return;
     node.focus({ preventScroll: true });
-    node.scrollIntoView({ block: "center", behavior: "smooth" });
+    // Respect "reduce motion" (WCAG 2.3.3): jump instead of animating.
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    node.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
   }, [token]);
   return ref;
 }

@@ -1,26 +1,30 @@
 @import "tailwindcss";
 
-/* Building 21 brand palette (PRD: Brand & Design) */
+/* Building 21 brand palette (PRD: Brand & Design).
+   The four "dark"/text shades are deepened slightly from the brand guide so
+   every text-on-background pairing in the app meets WCAG AA (4.5:1) — checked
+   against white, grey-tint3/4, and all three tint3 panel backgrounds. Same
+   hues; the change is barely visible. Don't lighten them back. */
 @theme {
   --color-teal: #0faec9;
   --color-teal-tint1: #4bc2d7;
   --color-teal-tint2: #87d6e4;
   --color-teal-tint3: #c3ebf1;
-  --color-teal-dark: #0a8196;
+  --color-teal-dark: #096e80; /* brand #0a8196, deepened to pass WCAG AA on every tint */
 
   --color-orange: #f27e34;
   --color-orange-tint1: #f59e67;
   --color-orange-tint2: #f8be99;
   --color-orange-tint3: #fcdfcc;
-  --color-orange-dark: #b45e23;
+  --color-orange-dark: #9a501e; /* brand #b45e23, deepened for AA */
 
   --color-green: #8eb651;
   --color-green-tint1: #aac87d;
   --color-green-tint2: #c6daa8;
   --color-green-tint3: #e3edd3;
-  --color-green-dark: #658639;
+  --color-green-dark: #516c2e; /* brand #658639, deepened for AA */
 
-  --color-grey: #67686a;
+  --color-grey: #636466; /* brand #67686a, deepened for AA on tinted panels */
   --color-grey-tint1: #b6b7ba;
   --color-grey-tint2: #d9d9da;
   --color-grey-tint3: #e8e8e9;

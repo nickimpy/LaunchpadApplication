@@ -49,7 +49,7 @@ function Field({ label, value }: { label: string; value: unknown }) {
         : String(value);
   return (
     <div className="mb-3">
-      <dt className="text-xs font-bold uppercase tracking-wide text-grey-tint1">
+      <dt className="text-xs font-bold uppercase tracking-wide text-grey">
         {label}
       </dt>
       <dd className="whitespace-pre-line">{text}</dd>
@@ -261,7 +261,7 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
                 <div key={e.prompt} className="mb-6">
                   <h3 className="mb-1 font-bold">{e.prompt}</h3>
                   <p className="whitespace-pre-line">
-                    {e.response || <span className="text-grey-tint1">(blank)</span>}
+                    {e.response || <span className="text-grey">(blank)</span>}
                   </p>
                 </div>
               ))

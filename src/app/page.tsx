@@ -15,7 +15,7 @@ export default function Home() {
         height={84}
         priority
       />
-      <h1 className="text-xl font-bold text-teal-dark">
+      <h1 className="text-center text-xl font-bold text-teal-dark">
         Launchpad Application Portal
       </h1>
       <p className="max-w-md text-center text-base">

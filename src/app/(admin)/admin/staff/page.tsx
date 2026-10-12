@@ -55,7 +55,7 @@ export default async function StaffPage() {
                   <th scope="row" className="px-3 py-3 text-left font-normal">
                     {name}
                     {a.id === actor.id && (
-                      <span className="ml-3 text-xs text-grey-tint1">(you)</span>
+                      <span className="ml-3 text-xs text-grey">(you)</span>
                     )}
                   </th>
                   <td className="px-3 py-3">{a.email}</td>
