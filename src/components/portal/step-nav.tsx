@@ -16,6 +16,7 @@ const CIRCLE_STYLES: Record<string, string> = {
   in_progress: "border-2 border-teal-dark bg-white text-teal-dark",
   submitted: "bg-teal-dark text-white",
   pending_verification: "bg-orange-dark text-white",
+  needs_attention: "border-2 border-orange-dark bg-white text-orange-dark",
   complete: "bg-green-dark text-white",
   locked: "border border-grey-tint2 bg-grey-tint3 text-grey",
 };
@@ -25,6 +26,7 @@ const STATUS_TEXT_STYLES: Record<string, string> = {
   in_progress: "text-teal-dark",
   submitted: "text-teal-dark",
   pending_verification: "text-orange-dark",
+  needs_attention: "text-orange-dark",
   complete: "text-green-dark",
 };
 
@@ -36,15 +38,36 @@ function stepLabel(step: StepView): string {
   return parts.join(" — ");
 }
 
+/**
+ * The step's number, always — so every circle says which step it is — with
+ * status shown by the circle's colour AND a corner badge (never colour alone):
+ * ✓ complete, ! flagged by staff, a lock while locked.
+ */
 function Circle({ step, large }: { step: StepView; large?: boolean }) {
   const style = step.locked ? CIRCLE_STYLES.locked : CIRCLE_STYLES[step.status];
+  const badge = step.locked
+    ? { content: <LockIcon />, style: "bg-grey text-white" }
+    : step.status === "complete"
+      ? { content: "✓", style: "bg-green-dark text-white" }
+      : step.status === "needs_attention"
+        ? { content: "!", style: "bg-orange-dark text-white" }
+        : null;
   return (
-    <span
-      aria-hidden="true"
-      className={`flex shrink-0 items-center justify-center rounded-full font-bold
-        ${large ? "h-12 w-12 text-lg" : "h-9 w-9 text-base"} ${style}`}
-    >
-      {step.status === "complete" ? "✓" : step.number}
+    <span aria-hidden="true" className="relative shrink-0">
+      <span
+        className={`flex items-center justify-center rounded-full font-bold
+          ${large ? "h-12 w-12 text-lg" : "h-9 w-9 text-base"} ${style}`}
+      >
+        {step.number}
+      </span>
+      {badge && (
+        <span
+          className={`absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center
+            rounded-full text-xs font-bold ring-2 ring-white ${badge.style}`}
+        >
+          {badge.content}
+        </span>
+      )}
     </span>
   );
 }
@@ -115,15 +138,11 @@ export function StepNav({
                 <Circle step={step} large />
                 <span
                   aria-hidden="true"
-                  className={`flex items-center gap-1 text-xs ${step.locked ? "text-grey" : (STATUS_TEXT_STYLES[step.status] ?? "text-grey")}`}
+                  className={`w-16 text-center text-xs leading-tight ${
+                    isActive(step) ? "font-bold text-teal-dark" : "text-grey"
+                  }`}
                 >
-                  {step.locked ? (
-                    <LockIcon />
-                  ) : step.owner === "staff" && step.status === "not_started" ? (
-                    "Staff"
-                  ) : (
-                    STATUS_LABELS[step.status].split(" ")[0]
-                  )}
+                  {step.shortName}
                 </span>
               </Link>
             </li>

@@ -18,6 +18,8 @@ export type StepOwner = "student" | "parent" | "staff";
 export type StepMeta = {
   number: number;
   name: string;
+  /** Two-word label for the cramped mobile step strip. */
+  shortName: string;
   owner: StepOwner;
   /** Steps a student may move themselves (matches step_progress RLS). */
   studentActionable: boolean;
@@ -31,6 +33,7 @@ export const STEPS: StepMeta[] = [
   {
     number: 1,
     name: "Student Information",
+    shortName: "Your info",
     owner: "student",
     studentActionable: true,
     maxStudentStatus: "complete",
@@ -40,6 +43,7 @@ export const STEPS: StepMeta[] = [
   {
     number: 2,
     name: "Parent / Guardian Form",
+    shortName: "Parent form",
     owner: "parent",
     studentActionable: false,
     maxStudentStatus: null,
@@ -49,6 +53,7 @@ export const STEPS: StepMeta[] = [
   {
     number: 3,
     name: "Short Answer Questions",
+    shortName: "Short answers",
     owner: "student",
     studentActionable: true,
     maxStudentStatus: "complete",
@@ -58,6 +63,7 @@ export const STEPS: StepMeta[] = [
   {
     number: 4,
     name: "Interview",
+    shortName: "Interview",
     owner: "staff",
     studentActionable: false,
     maxStudentStatus: null,
@@ -67,6 +73,7 @@ export const STEPS: StepMeta[] = [
   {
     number: 5,
     name: "C2LPHL Application",
+    shortName: "C2L app",
     owner: "student",
     studentActionable: true,
     maxStudentStatus: "pending_verification",
@@ -76,6 +83,7 @@ export const STEPS: StepMeta[] = [
   {
     number: 6,
     name: "C2LPHL Required Documents",
+    shortName: "C2L docs",
     owner: "student",
     studentActionable: true,
     maxStudentStatus: "pending_verification",
@@ -85,6 +93,7 @@ export const STEPS: StepMeta[] = [
   {
     number: 7,
     name: "Admissions Decision",
+    shortName: "Decision",
     owner: "staff",
     studentActionable: false,
     maxStudentStatus: null,
@@ -107,6 +116,7 @@ export function withSelfRelease(meta: StepMeta): StepMeta {
   return {
     ...meta,
     name: "Records Release Form",
+    shortName: "Records form",
     owner: "student",
     // Presentation only: the student opens the form and signs it, which flips
     // the step server-side. setStepStatus() keeps using the static STEPS entry,
