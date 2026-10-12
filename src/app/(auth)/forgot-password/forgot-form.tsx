@@ -1,5 +1,6 @@
 "use client";
 
+import { Turnstile } from "@/components/turnstile";
 import { useActionState } from "react";
 import { sendPasswordReset, type ResetRequestState } from "./actions";
 import { Alert, SubmitButton, TextField } from "@/components/forms";
@@ -25,6 +26,7 @@ export function ForgotPasswordForm() {
             defaultValue={values.email}
             error={state.error}
           />
+          <Turnstile resetOn={state} />
           <SubmitButton pendingLabel="Sending…">
             Send reset link
           </SubmitButton>

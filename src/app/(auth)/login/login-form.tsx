@@ -1,5 +1,6 @@
 "use client";
 
+import { Turnstile } from "@/components/turnstile";
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { login, sendMagicLink, type LoginState, type MagicLinkState } from "./actions";
@@ -33,6 +34,7 @@ function PasswordPanel() {
             Forgot your password?
           </Link>
         </div>
+        <Turnstile resetOn={state} />
         <SubmitButton pendingLabel="Logging in…">Log in</SubmitButton>
       </form>
     </>
@@ -62,6 +64,7 @@ function MagicLinkPanel() {
             autoComplete="email"
             defaultValue={values.email}
           />
+          <Turnstile resetOn={state} />
           <SubmitButton pendingLabel="Sending link…">
             Email me a magic link
           </SubmitButton>

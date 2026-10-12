@@ -1,5 +1,6 @@
 "use server";
 
+import { captchaToken } from "@/utils/captcha";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { getOrigin } from "@/utils/origin";
@@ -26,6 +27,7 @@ export async function sendPasswordReset(
   const supabase = createClient(await cookies());
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${await getOrigin()}/auth/callback?next=/reset-password`,
+    captchaToken: captchaToken(formData),
   });
   if (error)
     return {

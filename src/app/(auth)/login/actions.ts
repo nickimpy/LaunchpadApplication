@@ -1,5 +1,6 @@
 "use server";
 
+import { captchaToken } from "@/utils/captcha";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isActiveAdmin } from "@/utils/admin";
@@ -24,7 +25,11 @@ export async function login(
     return { error: "Enter your email and password.", values: { email } };
 
   const supabase = createClient(await cookies());
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    options: { captchaToken: captchaToken(formData) },
+  });
 
   if (error) {
     if (error.code === "email_not_confirmed")
@@ -66,6 +71,7 @@ export async function sendMagicLink(
     options: {
       shouldCreateUser: false,
       emailRedirectTo: `${await getOrigin()}/auth/callback`,
+      captchaToken: captchaToken(formData),
     },
   });
 

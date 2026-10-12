@@ -306,7 +306,7 @@ Decided October 2026 to skip for launch (about an hour to build later; `students
 - **Open redirects** closed on `/auth/callback` and `/auth/confirm`.
 - **Headers:** no framing (clickjacking), nosniff, strict referrer policy, permissions policy, HSTS.
 - **Every staff action and file route re-checks staff access** (verified 2026-10-12).
-- **Recommended next:** Cloudflare Turnstile CAPTCHA on signup/login (free; needs a Cloudflare site key + secret, then Supabase Auth → Bot protection).
+- **CAPTCHA:** Cloudflare Turnstile is built into every auth form (signup, login, magic link, password reset, resend) and switches on once its keys are added (Vercel site key first, then Supabase secret key).
 
 ## Accessibility (WCAG 2.1 AA review, October 2026)
 
@@ -322,11 +322,12 @@ Still open:
 
 - Final interview rubric wording (criteria, score anchors) in `src/utils/interview-options.ts`
 - Legal review of the 18+ first-person consent (`student_release_consent_text`)
-- Portal domain `apply.launchpadphilly.org` (Vercel domain + CNAME from Building 21; update Supabase Site URL/redirects)
-- Optional: Cloudflare Turnstile CAPTCHA (see Security)
+- Turn on Cloudflare Turnstile CAPTCHA (code is in; needs keys)
 - Optional: public status link (deferred), school-list management screen, dashboard "needs action" list, cycle archive export
 
 Resolved (October 2026):
+
+- Portal domain — live at https://apply.launchpadphilly.org
 
 - Short answer questions — three hard-coded questions, 50–150 words
 - Step dependency map — Step 1 unlocks 2–6 (parallel); 7 staff-only

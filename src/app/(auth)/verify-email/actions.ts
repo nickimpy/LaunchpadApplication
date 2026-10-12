@@ -1,5 +1,6 @@
 "use server";
 
+import { captchaToken } from "@/utils/captcha";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { getOrigin } from "@/utils/origin";
@@ -20,7 +21,10 @@ export async function resendVerification(
   const { error } = await supabase.auth.resend({
     type: "signup",
     email,
-    options: { emailRedirectTo: `${await getOrigin()}/auth/callback` },
+    options: {
+      emailRedirectTo: `${await getOrigin()}/auth/callback`,
+      captchaToken: captchaToken(formData),
+    },
   });
   if (error)
     return {

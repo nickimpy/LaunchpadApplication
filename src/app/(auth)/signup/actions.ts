@@ -1,5 +1,6 @@
 "use server";
 
+import { captchaToken } from "@/utils/captcha";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -96,6 +97,7 @@ export async function signup(
     options: {
       // default confirmation email lands here after Supabase verifies the token
       emailRedirectTo: `${await getOrigin()}/auth/callback`,
+      captchaToken: captchaToken(formData),
       // kept in auth metadata so a half-finished signup can self-heal on
       // first login (see ensureStudentRecords call in /profile)
       data: {

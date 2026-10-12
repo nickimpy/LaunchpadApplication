@@ -1,5 +1,6 @@
 "use client";
 
+import { Turnstile } from "@/components/turnstile";
 import { useActionState } from "react";
 import { signup, type SignupState } from "./actions";
 import {
@@ -28,6 +29,7 @@ function DuplicateAccountNotice({ email }: { email: string }) {
       ) : (
         <form action={action}>
           <input type="hidden" name="email" value={email} />
+          <Turnstile resetOn={state} />
           <p>
             An account with that email already exists,{" "}
             <button
@@ -162,6 +164,7 @@ export function SignupForm() {
           defaultValue={values.notification_preference}
           error={state.errors?.notification_preference}
         />
+        <Turnstile resetOn={state} />
         <SubmitButton pendingLabel="Creating your account…">
           Create account
         </SubmitButton>

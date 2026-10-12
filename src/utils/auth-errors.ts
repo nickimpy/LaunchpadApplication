@@ -35,6 +35,10 @@ const AUTH_MESSAGES: Record<string, string> = {
   weak_password:
     "That password is too easy to guess. Try a longer one, or mix in numbers and symbols.",
 
+  // Bot check (Cloudflare Turnstile)
+  captcha_failed:
+    "We couldn't confirm you're a person. Wait a moment for the check above the button to finish, then try again.",
+
   // Links and sessions
   otp_expired:
     "That link has expired or was already used. Request a fresh one.",
