@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { regenerateParentLink } from "@/app/parent/parent-actions";
 
 /**
@@ -117,7 +118,17 @@ export function SelfReleaseBox({
         minutes.
       </p>
       {complete ? (
-        <p className="font-bold">You&apos;ve already signed it — nothing more to do.</p>
+        <>
+          <p className="mb-3 font-bold">You&apos;ve signed it — Step 2 is complete.</p>
+          <Link
+            href="/portal/steps/3"
+            className="inline-block rounded-md bg-teal-dark px-6 py-3 text-base font-bold text-white
+              hover:brightness-110 focus:outline-none focus-visible:ring-2
+              focus-visible:ring-teal-dark focus-visible:ring-offset-2"
+          >
+            Continue to Step 3
+          </Link>
+        </>
       ) : (
         <a
           href={url}

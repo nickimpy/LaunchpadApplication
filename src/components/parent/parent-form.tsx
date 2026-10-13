@@ -45,26 +45,38 @@ export function ParentFormComplete({
 }) {
   return (
     <div className="rounded-lg border border-green-dark bg-green-tint3 p-6">
-      <h1 className="mb-3 text-2xl font-bold">Thank you — you&apos;re done</h1>
       {selfRelease ? (
+        // An 18+ applicant signing for themselves still has the rest of their
+        // application to do — so this points onward, never "you're done".
         <>
-          <p className="mb-3">
-            We&apos;ve received and recorded your signed records release form.
-            This step of your application is now complete — there&apos;s nothing
-            else you need to do here.
+          <h1 className="mb-3 text-2xl font-bold">Step 2 is complete</h1>
+          <p className="mb-6">
+            Thanks — we&apos;ve received and recorded your signed records
+            release form. Next up: a few short written questions in Step 3.
           </p>
+          <Link
+            href="/portal/steps/3"
+            className="mb-3 inline-block rounded-md bg-teal-dark px-6 py-3 text-base font-bold
+              text-white hover:brightness-110 focus:outline-none focus-visible:ring-2
+              focus-visible:ring-teal-dark focus-visible:ring-offset-2"
+          >
+            Continue to Step 3
+          </Link>
           <p className="mb-3">
             <Link className="font-bold text-teal-dark underline" href="/portal">
-              Back to your application
+              See all my steps
             </Link>
           </p>
         </>
       ) : (
-        <p className="mb-3">
-          We&apos;ve received and recorded your signed parent/guardian form for{" "}
-          {studentFirstName}. This step of their application is now complete —
-          there&apos;s nothing else you need to do.
-        </p>
+        <>
+          <h1 className="mb-3 text-2xl font-bold">Thank you — you&apos;re done</h1>
+          <p className="mb-3">
+            We&apos;ve received and recorded your signed parent/guardian form for{" "}
+            {studentFirstName}. This step of their application is now complete —
+            there&apos;s nothing else you need to do.
+          </p>
+        </>
       )}
       <p className="text-xs">
         Questions? Email{" "}
