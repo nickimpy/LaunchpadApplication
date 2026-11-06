@@ -231,7 +231,6 @@ export async function resolveCollegeFlag(
 /** Puts a resolved college flag back up, e.g. if the student's plans change. */
 export async function reopenCollegeFlag(
   applicationId: string,
-  _prev: AdminFormState,
 ): Promise<AdminFormState> {
   const admin = await getAdminUser();
   if (!admin) return { error: DENIED };
@@ -274,7 +273,6 @@ export async function reopenCollegeFlag(
  */
 export async function resendParentLink(
   applicationId: string,
-  _prev: AdminFormState,
 ): Promise<AdminFormState> {
   const admin = await getAdminUser();
   if (!admin) return { error: DENIED };
