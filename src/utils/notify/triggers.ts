@@ -15,6 +15,8 @@ import {
   interviewComplete,
   decisionReady,
   deadlineReminder,
+  linkCorrectionStudent,
+  linkCorrectionParent,
   type RenderedMessage,
   type TemplateContext,
 } from "@/utils/notify/templates";
@@ -458,4 +460,92 @@ export async function runDailyReminders(origin: string): Promise<Record<string, 
   }
 
   return counts;
+}
+
+// ---------------------------------------------------------------------------
+// One-off: correct reminders that went out with a broken link (Nov 2026)
+// ---------------------------------------------------------------------------
+
+/** Reminders sent before the link fix all pointed at the login-walled Vercel URL. */
+const BROKEN_LINK_CUTOFF = "2026-11-07T00:00:00Z";
+const STUDENT_REMINDERS: Record<string, number> = {
+  reminder_start: 1,
+  reminder_step3: 3,
+  reminder_step2_student: 2,
+};
+
+/**
+ * One corrected message per affected person — not one per broken reminder —
+ * and only where the step that reminder nudged is STILL not done. Students get
+ * it on their own channel preference; parents (only those sent the broken
+ * parent reminder) get email + text with their form link. Each is logged with
+ * its own trigger and sent at most once, so re-running is safe.
+ */
+export async function sendLinkCorrections(
+  origin: string,
+  dryRun: boolean,
+): Promise<{ students: number; parentFamilies: number; skippedDone: number; dryRun: boolean }> {
+  const admin = createAdminClient();
+  const { data: logs } = await admin
+    .from("notification_log")
+    .select("application_id, trigger_event")
+    .in("trigger_event", [...Object.keys(STUDENT_REMINDERS), "reminder_parent"])
+    .lt("sent_at", BROKEN_LINK_CUTOFF);
+
+  const byApp = new Map<string, Set<string>>();
+  for (const r of logs ?? []) {
+    if (!r.application_id) continue;
+    const set = byApp.get(r.application_id as string) ?? new Set<string>();
+    set.add(r.trigger_event as string);
+    byApp.set(r.application_id as string, set);
+  }
+
+  let students = 0;
+  let parentFamilies = 0;
+  let skippedDone = 0;
+  for (const [id, triggers] of byApp) {
+    const { data: steps } = await admin
+      .from("step_progress")
+      .select("step_number, status")
+      .eq("application_id", id);
+    const status = (n: number) => steps?.find((s) => s.step_number === n)?.status ?? "not_started";
+    const stillOpen = (trigger: string) =>
+      trigger === "reminder_start"
+        ? status(1) === "not_started"
+        : status(STUDENT_REMINDERS[trigger] ?? 2) !== "complete";
+
+    const studentNeeds = [...triggers].some((t) => t in STUDENT_REMINDERS && stillOpen(t));
+    const parentNeeds = triggers.has("reminder_parent") && status(2) !== "complete";
+    if (!studentNeeds && !parentNeeds) {
+      skippedDone++;
+      continue;
+    }
+
+    const l = await load(id, origin);
+    if (!l) continue;
+    if (studentNeeds && !(await alreadySent(id, "link_correction_student"))) {
+      students++;
+      if (!dryRun) {
+        await safely("link_correction_student", async () => {
+          await toStudent(l, linkCorrectionStudent(l.ctx), "link_correction_student");
+        });
+      }
+    }
+    if (parentNeeds && !l.selfRelease && !(await alreadySent(id, "link_correction_parent"))) {
+      parentFamilies++;
+      if (!dryRun) {
+        await safely("link_correction_parent", async () => {
+          await toGuardians(
+            l,
+            linkCorrectionParent(l.ctx, {
+              studentName: l.studentFullName,
+              parentLinkUrl: l.parentLinkUrl,
+            }),
+            "link_correction_parent",
+          );
+        });
+      }
+    }
+  }
+  return { students, parentFamilies, skippedDone, dryRun };
 }

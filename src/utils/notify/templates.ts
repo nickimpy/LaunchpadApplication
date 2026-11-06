@@ -337,3 +337,44 @@ function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+// ---------------------------------------------------------------------------
+// One-off: correction for reminders sent with a broken link (Nov 2026)
+// ---------------------------------------------------------------------------
+
+/** Student: the link in their last reminder didn't work; here's the right one. */
+export function linkCorrectionStudent(ctx: TemplateContext): RenderedMessage {
+  const lines = [
+    `Hi ${ctx.firstName},`,
+    `The link in our recent reminder pointed to a page you couldn't open — that was our mistake.`,
+    `Everything you've saved is still there. Here's the right link to continue your application.`,
+    signOff(ctx.contactEmail),
+  ];
+  return {
+    template: "link_correction_student",
+    subject: "Sorry — wrong link in our last reminder",
+    text: lines.join("\n\n") + `\n\n${ctx.portalUrl}`,
+    html: shell(lines, { label: "Continue my application", url: ctx.portalUrl }),
+    sms: `Launchpad Philly: sorry, the link in our last reminder didn't work. Here's the right one to continue your application: ${ctx.portalUrl}`,
+  };
+}
+
+/** Parent: the link in our parent-form reminder didn't work. */
+export function linkCorrectionParent(
+  ctx: TemplateContext,
+  args: { studentName: string; parentLinkUrl: string },
+): RenderedMessage {
+  const lines = [
+    `Hello,`,
+    `The link in our reminder about ${args.studentName}'s parent/guardian form pointed to a page you couldn't open — that was our mistake.`,
+    `Here's the correct form. It takes about five minutes and needs no account.`,
+    signOff(ctx.contactEmail),
+  ];
+  return {
+    template: "link_correction_parent",
+    subject: `Corrected link: ${args.studentName}'s parent/guardian form`,
+    text: lines.join("\n\n") + `\n\n${args.parentLinkUrl}`,
+    html: shell(lines, { label: "Open the parent form", url: args.parentLinkUrl }),
+    sms: `Launchpad Philly: sorry, the link in our reminder about ${args.studentName}'s parent/guardian form didn't work. Here's the correct form (about 5 min, no login): ${args.parentLinkUrl} Reply STOP to opt out.`,
+  };
+}
