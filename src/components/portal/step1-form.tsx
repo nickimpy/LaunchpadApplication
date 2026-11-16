@@ -14,6 +14,7 @@ import {
   TextField,
 } from "@/components/forms";
 import { GPA_MAX, GPA_MIN } from "@/utils/validation";
+import { SchoolPicker } from "@/components/school-picker";
 import {
   SCHOOL_OTHER,
   type Step1State,
@@ -68,10 +69,8 @@ export function Step1Form({ data }: { data: Step1Data }) {
   const showCollegeWarning = needsCollegeWarning(gradYear, postHsPlan);
   const contactWho = selfRelease ? "Emergency contact's" : "Guardian's";
 
-  const schoolOptions = [
-    ...data.schools.map((s) => ({ value: s.id, label: s.name })),
-    { value: SCHOOL_OTHER, label: "Other" },
-  ];
+  const schoolOptions = data.schools.map((s) => ({ value: s.id, label: s.name }));
+  const schoolOther = { value: SCHOOL_OTHER, label: "My school isn't listed — I'll type it in" };
 
   const pa = values.program_answers;
 
@@ -128,9 +127,10 @@ export function Step1Form({ data }: { data: Step1Data }) {
 
         {/* ---- Academic ---- */}
         <SectionHeading>Academic information</SectionHeading>
-        <SelectField label="What school do you attend?" name="school_id"
-          options={schoolOptions} defaultValue={schoolChoice}
-          onChange={setSchoolChoice} error={err?.school_id} />
+        <SchoolPicker label="What school do you attend?" name="school_id"
+          options={schoolOptions} otherOption={schoolOther}
+          defaultValue={schoolChoice} onChange={setSchoolChoice}
+          error={err?.school_id} />
         {schoolChoice === SCHOOL_OTHER && (
           <TextField label="What high school do you attend?" name="school_other"
             defaultValue={values.school_other} error={err?.school_other} />
