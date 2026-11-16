@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { createClient } from "@/utils/supabase/server";
 import { getAdminUser } from "@/utils/admin";
+import { getApplicants, parseFilters } from "@/utils/applicants";
 import {
   STEPS,
   ADMIN_STATUS_LABELS,
@@ -34,73 +33,43 @@ const EMPTY: Counts = {
  */
 export default async function AdminDashboard() {
   const admin = await getAdminUser();
-  const supabase = createClient(await cookies());
 
-  // Scoped to the active cycle, same as the applicant list — otherwise these
-  // counts include past cycles and disagree with the list they link to.
-  const { data: cycle } = await supabase
-    .from("cycles")
-    .select("id")
-    .eq("is_active", true)
-    .maybeSingle();
-  const cycleId = cycle?.id ?? "";
-
-  const [{ data: applications }, { data: progress }] = await Promise.all([
-    supabase
-      .from("applications")
-      .select("school_id, school_other, schools ( name, is_partner )")
-      .eq("cycle_id", cycleId),
-    supabase
-      .from("step_progress")
-      .select("application_id, step_number, status, applications!inner(cycle_id)")
-      .eq("applications.cycle_id", cycleId),
-  ]);
+  // Same source as the applicant list, so every number here matches the list
+  // it links to. Only the ACTIVE pipeline counts: verified email, not archived.
+  // Unverified signups and archived records would otherwise inflate every bar.
+  const { rows, counts } = await getApplicants(parseFilters({}));
 
   const byStep = new Map<number, Counts>();
-  for (const row of progress ?? []) {
-    const n = row.step_number as number;
-    const counts = byStep.get(n) ?? { ...EMPTY };
-    counts[row.status as StepStatus] += 1;
-    byStep.set(n, counts);
-  }
-
-  const applicantCount = applications?.length ?? 0;
-  // Each applicant's current stage = earliest step they haven't completed.
-  const statusesByApp = new Map<string, Record<number, StepStatus>>();
-  for (const row of progress ?? []) {
-    const id = row.application_id as string;
-    const statuses = statusesByApp.get(id) ?? {};
-    statuses[row.step_number as number] = row.status as StepStatus;
-    statusesByApp.set(id, statuses);
-  }
   const byStage: Record<number, number> = {};
-  for (const statuses of statusesByApp.values()) {
-    const stage = currentStage(statuses);
+  for (const r of rows) {
+    for (const step of STEPS) {
+      const st = r.statuses[step.number] ?? "not_started";
+      const c = byStep.get(step.number) ?? { ...EMPTY };
+      c[st] += 1;
+      byStep.set(step.number, c);
+    }
+    const stage = currentStage(r.statuses);
     byStage[stage] = (byStage[stage] ?? 0) + 1;
   }
+  const applicantCount = counts.active;
 
   // Applicants per school. Listed schools group by id (names can repeat across
   // renames, ids can't) and link to the school filter; "Other" free text groups
   // by what the student typed and links to a name search instead.
-  type AppRow = {
-    school_id: string | null;
-    school_other: string | null;
-    schools: { name: string | null; is_partner: boolean | null } | null;
-  };
   const bySchool = new Map<string, SchoolCount>();
-  for (const a of (applications ?? []) as unknown as AppRow[]) {
+  for (const r of rows) {
     let key: string;
     let entry: SchoolCount;
-    if (a.school_id && a.schools?.name) {
-      key = `id:${a.school_id}`;
+    if (r.schoolId && r.schoolName) {
+      key = `id:${r.schoolId}`;
       entry = {
-        name: a.schools.name,
+        name: r.schoolName,
         count: 0,
-        href: `/admin/applicants?school=${a.school_id}`,
-        isPartner: Boolean(a.schools.is_partner),
+        href: `/admin/applicants?school=${r.schoolId}`,
+        isPartner: r.isPartnerSchool,
       };
-    } else if (a.school_other?.trim()) {
-      const name = a.school_other.trim();
+    } else if (r.schoolName.trim()) {
+      const name = r.schoolName.trim();
       key = `other:${name.toLowerCase()}`;
       entry = {
         name: `${name} (typed in)`,
@@ -125,14 +94,36 @@ export default async function AdminDashboard() {
       <h1 className="mb-3 text-2xl font-bold">
         Welcome back, {admin?.firstName || "there"}
       </h1>
-      <p className="mb-9">
-        {applicantCount} applicant{applicantCount === 1 ? "" : "s"} in the
+      <p className="mb-3">
+        {applicantCount} active applicant{applicantCount === 1 ? "" : "s"} in the
         current cycle.{" "}
         <Link className="text-teal-dark underline" href="/admin/applicants">
           View the applicant list
         </Link>
         .
       </p>
+      <p className="mb-6 text-xs">
+        Not counted:{" "}
+        <Link className="text-teal-dark underline" href="/admin/applicants?view=unverified">
+          {counts.unverified} unverified signup{counts.unverified === 1 ? "" : "s"}
+        </Link>{" "}
+        (never confirmed their email — auto-archived after 30 days) and{" "}
+        <Link className="text-teal-dark underline" href="/admin/applicants?view=archived">
+          {counts.archived} archived
+        </Link>
+        .
+      </p>
+      {counts.duplicateGroups > 0 && (
+        <div className="mb-9 rounded-md border-l-4 border-orange-dark bg-orange-tint3 px-3 py-3">
+          <strong>
+            {counts.duplicateGroups} possible duplicate{counts.duplicateGroups === 1 ? "" : "s"}
+          </strong>{" "}
+          — students who appear to have signed up more than once.{" "}
+          <Link className="font-bold text-teal-dark underline" href="/admin/duplicates">
+            Review and keep one
+          </Link>
+        </div>
+      )}
 
       <h2 className="mb-1 text-lg font-bold">Pipeline</h2>
       <p className="mb-3 text-xs">
@@ -187,7 +178,7 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="mt-9">
-        <StageBars total={statusesByApp.size} byStage={byStage} />
+        <StageBars total={rows.length} byStage={byStage} />
         <SchoolTable rows={schoolRows} />
       </div>
     </>

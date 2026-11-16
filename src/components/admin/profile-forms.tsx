@@ -17,8 +17,13 @@ import {
   deleteDocument,
 } from "@/app/(admin)/admin/applicants/[id]/document-actions";
 import { DOC_TYPES } from "@/utils/document-options";
+import { ARCHIVE_REASON_LABELS, STAFF_ARCHIVE_REASONS } from "@/utils/archive-options";
+import {
+  archiveApplication,
+  restoreApplication,
+} from "@/app/(admin)/admin/applicants/archive-actions";
 import type { ApplicantProfile } from "@/utils/applicant-profile";
-import { Alert, TextField, SubmitButton } from "@/components/forms";
+import { Alert, SelectField, TextField, SubmitButton } from "@/components/forms";
 import { formatDate, formatDateTime } from "@/utils/dates";
 
 export function StudentInfoForm({ profile }: { profile: ApplicantProfile }) {
@@ -379,5 +384,92 @@ export function CollegeFlagPanel({
         </div>
       </form>
     </div>
+  );
+}
+
+/**
+ * Archive / restore on the applicant profile. Archived: a banner saying why,
+ * who, when, and a Restore button. Not archived: a small form — reason, note.
+ * Withdrawal is staff-only by design (students can't withdraw themselves).
+ */
+export function ArchivePanel({
+  applicationId,
+  archivedAt,
+  reason,
+  note,
+  duplicateOfId,
+}: {
+  applicationId: string;
+  archivedAt: string | null;
+  reason: string | null;
+  note: string | null;
+  duplicateOfId: string | null;
+}) {
+  const [archiveState, archiveAction] = useActionState<AdminFormState, FormData>(
+    archiveApplication.bind(null, applicationId),
+    {},
+  );
+  const [restoreState, restoreAction] = useActionState<AdminFormState, FormData>(
+    restoreApplication.bind(null, applicationId),
+    {},
+  );
+
+  if (archivedAt) {
+    return (
+      <div className="mb-6 rounded-md border-l-4 border-grey bg-grey-tint3 px-3 py-3">
+        <p className="mb-1">
+          <strong>Archived</strong> — {ARCHIVE_REASON_LABELS[reason ?? ""] ?? "archived"}, on{" "}
+          {formatDate(archivedAt)}. Hidden from the active list, counts and reminders.
+        </p>
+        {note && <p className="mb-1 whitespace-pre-line">{note}</p>}
+        {duplicateOfId && (
+          <p className="mb-1">
+            <Link className="font-bold text-teal-dark underline" href={`/admin/applicants/${duplicateOfId}`}>
+              Open the record that was kept
+            </Link>
+          </p>
+        )}
+        {restoreState.error && <Alert tone="error">{restoreState.error}</Alert>}
+        {restoreState.success && <Alert tone="success">{restoreState.success}</Alert>}
+        <form action={restoreAction}>
+          <button
+            type="submit"
+            className="mt-1 text-xs font-bold text-teal-dark underline focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-dark"
+          >
+            Restore to the active pipeline
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <form action={archiveAction} className="flex flex-col gap-3">
+      <p className="text-xs">
+        Use this when a student withdraws, is ineligible, or the account is a
+        test. Archived applications leave the active list, counts and
+        reminders, and can be restored. Nothing is deleted.
+      </p>
+      {archiveState.error && <Alert tone="error">{archiveState.error}</Alert>}
+      {archiveState.success && <Alert tone="success">{archiveState.success}</Alert>}
+      <SelectField
+        label="Reason"
+        name="reason"
+        options={STAFF_ARCHIVE_REASONS}
+        placeholder="Choose a reason…"
+      />
+      <label className="block">
+        <span className="block text-xs font-bold">Note</span>
+        <textarea
+          name="note"
+          rows={2}
+          placeholder="e.g. Called 11/16 — taking a job instead. (Required for Withdrew and Other.)"
+          className="mt-1 block w-full rounded-md border border-grey-tint1 bg-white px-3 py-3 text-base"
+        />
+      </label>
+      <div>
+        <SubmitButton pendingLabel="Archiving…">Archive application</SubmitButton>
+      </div>
+    </form>
   );
 }

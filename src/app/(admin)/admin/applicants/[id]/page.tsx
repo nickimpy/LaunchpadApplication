@@ -6,6 +6,7 @@ import { formatDateTime } from "@/utils/dates";
 import { STEPS, STATUS_LABELS, type StepStatus } from "@/utils/steps";
 import {
   StudentInfoForm,
+  ArchivePanel,
   CollegeFlagPanel,
   GuardianForm,
   ParentLinkPanel,
@@ -113,6 +114,16 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
         {s.phone ? ` · ${s.phone}` : ""} · {profile.schoolName || "No school on file"}
         {profile.isPartnerSchool && " · Partner school"}
       </p>
+
+      {Boolean(app.archived_at) && (
+        <ArchivePanel
+          applicationId={profile.applicationId}
+          archivedAt={(app.archived_at as string | null) ?? null}
+          reason={(app.archive_reason as string | null) ?? null}
+          note={(app.archive_note as string | null) ?? null}
+          duplicateOfId={(app.duplicate_of as string | null) ?? null}
+        />
+      )}
 
       {Boolean(app.college_warning_flagged) && (
         <CollegeFlagPanel
@@ -344,6 +355,18 @@ export default async function ApplicantProfilePage({ params }: { params: Params 
               <p className="mb-6 text-xs">Not submitted yet.</p>
             )}
           </Card>
+
+          {!app.archived_at && (
+            <Card title="Archive">
+              <ArchivePanel
+                applicationId={profile.applicationId}
+                archivedAt={null}
+                reason={null}
+                note={null}
+                duplicateOfId={null}
+              />
+            </Card>
+          )}
 
           <Card title={app.self_release ? "Records release link (student signs)" : "Parent link"}>
             <ParentLinkPanel

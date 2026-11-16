@@ -2,6 +2,7 @@
 
 import { Turnstile } from "@/components/turnstile";
 import { useActionState } from "react";
+import Link from "next/link";
 import { signup, type SignupState } from "./actions";
 import {
   sendPasswordReset,
@@ -164,6 +165,38 @@ export function SignupForm() {
           defaultValue={values.notification_preference}
           error={state.errors?.notification_preference}
         />
+        {/* Same person, different email: point them back to the account they
+            already have. Shown right above the button so it's on screen after
+            submitting. They can still continue — staff then see both records
+            on the Possible duplicates screen. */}
+        {state.possibleExisting && (
+          <Alert tone="info">
+            <p className="mb-3">
+              <strong>It looks like you already started an application</strong>,
+              with an email like <strong>{state.possibleExisting}</strong>.
+            </p>
+            <ul className="mb-3 list-disc space-y-1 pl-6">
+              <li>
+                <Link className="font-bold text-teal-dark underline" href="/login">
+                  Log in to that account
+                </Link>
+              </li>
+              <li>
+                Forgot the password, or never got the confirmation email?{" "}
+                <Link className="font-bold text-teal-dark underline" href="/forgot-password">
+                  Reset your password
+                </Link>{" "}
+                — that also confirms the email.
+              </li>
+            </ul>
+            <p className="text-xs">
+              Can&apos;t get into that email anymore? Re-enter your password
+              above and press <strong>Create account</strong> again to continue
+              with this new email.
+            </p>
+            <input type="hidden" name="confirm_new_account" value="yes" />
+          </Alert>
+        )}
         <Turnstile resetOn={state} />
         <SubmitButton pendingLabel="Creating your account…">
           Create account

@@ -22,6 +22,8 @@ import {
 } from "@/utils/notify/templates";
 import { STEPS, formatDeadline, getStepMeta, type StepStatus } from "@/utils/steps";
 import { STEP3_MAX_WORDS, STEP3_MIN_WORDS } from "@/utils/step3-options";
+import { UNVERIFIED_ARCHIVE_DAYS } from "@/utils/archive-options";
+import { getAuthStatus } from "@/utils/verified";
 
 // Every notification the app sends, one function per event (the full list is
 // in CLAUDE.md, "Notifications"). Callers fire-and-forget: each function loads
@@ -53,12 +55,13 @@ async function load(applicationId: string, origin: string): Promise<Loaded | nul
   const { data: app } = await admin
     .from("applications")
     .select(
-      `id, student_id, cycle_id, parent_link_token, self_release,
+      `id, student_id, cycle_id, parent_link_token, self_release, archived_at,
        students ( first_name, last_name, preferred_name, email, phone, notification_preference )`,
     )
     .eq("id", applicationId)
     .maybeSingle();
-  if (!app) return null;
+  // Archived applications (withdrew, duplicate, test…) never get messages.
+  if (!app || app.archived_at) return null;
 
   const student = app.students as unknown as {
     first_name: string;
@@ -328,11 +331,37 @@ export async function runDailyReminders(origin: string): Promise<Record<string, 
     .maybeSingle();
   if (!cycle) return counts;
 
+  // Auto-archive signups that never verified their email after N days: they
+  // can't log in, never progress, and inflate every count. Restorable.
+  const auth = await getAuthStatus();
+  const cutoff = Date.now() - UNVERIFIED_ARCHIVE_DAYS * 24 * 60 * 60 * 1000;
+  const { data: openApps } = await admin
+    .from("applications")
+    .select("id, student_id")
+    .eq("cycle_id", cycle.id)
+    .is("archived_at", null);
+  const stale = (openApps ?? []).filter((a) => {
+    const u = auth.get(a.student_id as string);
+    return u && !u.verified && new Date(u.createdAt).getTime() < cutoff;
+  });
+  if (stale.length) {
+    await admin
+      .from("applications")
+      .update({
+        archived_at: new Date().toISOString(),
+        archived_by: null,
+        archive_reason: "never_verified",
+        archive_note: `Email never verified within ${UNVERIFIED_ARCHIVE_DAYS} days of signing up (archived automatically).`,
+      })
+      .in("id", stale.map((a) => a.id as string));
+  }
+  counts.auto_archived_unverified = stale.length;
+
   const [{ data: apps }, { data: deadlineRow }] = await Promise.all([
     admin
       .from("applications")
       .select(
-        `id, self_release,
+        `id, self_release, archived_at,
          students ( created_at ),
          step_progress ( step_number, status, completed_at ),
          decisions ( status )`,
@@ -350,6 +379,7 @@ export async function runDailyReminders(origin: string): Promise<Record<string, 
 
   for (const app of apps ?? []) {
     const id = app.id as string;
+    if (app.archived_at) continue;
     // Once there's any decision on file, application nudges stop.
     const decided = (app.decisions as unknown as { status: string }[] | { status: string } | null);
     if (Array.isArray(decided) ? decided.length > 0 : Boolean(decided)) continue;

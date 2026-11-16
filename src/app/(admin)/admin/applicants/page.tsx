@@ -27,7 +27,12 @@ export default async function ApplicantsPage({
   searchParams: SearchParams;
 }) {
   const filters = parseFilters(await searchParams);
-  const { rows, schools, total } = await getApplicants(filters);
+  const { rows, schools, total, counts } = await getApplicants(filters);
+  const viewTabs = [
+    { value: "", label: "Active", count: counts.active },
+    { value: "unverified", label: "Unverified signups", count: counts.unverified },
+    { value: "archived", label: "Archived", count: counts.archived },
+  ];
 
   // Same parameter names the list itself reads (the old version serialised the
   // filter object's own keys, so ?schoolId= was silently ignored by the export).
@@ -39,7 +44,8 @@ export default async function ApplicantsPage({
         <div>
           <h1 className="text-2xl font-bold">Applicants</h1>
           <p className="mt-1 text-xs">
-            Showing {rows.length} of {total}
+            Showing {rows.length}
+            {filters.view === "" ? ` of ${total} active` : ""}
             {rows.length > 0 && " · tick a row, or shift-click to select a range"}
             {hasActiveFilters(filters) && (
               <>
@@ -61,12 +67,42 @@ export default async function ApplicantsPage({
         </a>
       </div>
 
+      {/* Which records: the active pipeline by default. Unverified signups
+          (never confirmed their email) and archived records live in their own
+          tabs so they don't inflate counts or clutter the working list. */}
+      <nav aria-label="Applicant views" className="mb-3 flex flex-wrap gap-3">
+        {viewTabs.map((t) => {
+          const active = filters.view === t.value;
+          return (
+            <Link
+              key={t.label}
+              href={`/admin/applicants?${applicantsQuery({ ...filters, view: t.value, stage: "", step: "", status: "" })}`}
+              aria-current={active ? "page" : undefined}
+              className={`rounded-full px-3 py-1 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-dark ${
+                active ? "bg-teal-dark text-white" : "border border-grey-tint1 bg-white text-teal-dark hover:bg-grey-tint4"
+              }`}
+            >
+              {t.label} ({t.count})
+            </Link>
+          );
+        })}
+        {counts.duplicateGroups > 0 && (
+          <Link
+            href="/admin/duplicates"
+            className="rounded-full bg-orange-tint3 px-3 py-1 text-xs font-bold text-orange-dark hover:underline"
+          >
+            {counts.duplicateGroups} possible {counts.duplicateGroups === 1 ? "duplicate" : "duplicates"} to review →
+          </Link>
+        )}
+      </nav>
+
       {/* GET form: filters live in the URL, so a filtered view is shareable
           and the CSV export can reuse exactly the same query string. */}
       <form
         method="get"
         className="mb-6 grid gap-3 rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm sm:grid-cols-2 lg:grid-cols-3"
       >
+        <input type="hidden" name="view" value={filters.view} />
         <label className="block">
           <span className="block text-xs font-bold">Search</span>
           <input

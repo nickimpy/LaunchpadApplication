@@ -30,6 +30,8 @@ export type PortalData = {
   contactEmail: string;
   /** 18+ applicant signing their own records release (Step 2 becomes theirs). */
   selfRelease: boolean;
+  /** Staff archived this application (withdrew, duplicate…): the portal is closed. */
+  archived: { reason: string | null } | null;
   steps: StepView[];
   completedCount: number;
 };
@@ -150,10 +152,13 @@ export const getPortalData = cache(async (): Promise<PortalData | null> => {
   // here just means "not self-releasing" instead of taking the whole portal down.
   const { data: releaseRow } = await supabase
     .from("applications")
-    .select("self_release")
+    .select("self_release, archived_at, archive_reason")
     .eq("id", application.id)
     .maybeSingle();
   const selfRelease = Boolean(releaseRow?.self_release);
+  const archived = releaseRow?.archived_at
+    ? { reason: (releaseRow.archive_reason as string | null) ?? null }
+    : null;
 
   const steps: StepView[] = STEPS.map((base) => {
     const meta = selfRelease ? withSelfRelease(base) : base;
@@ -174,6 +179,7 @@ export const getPortalData = cache(async (): Promise<PortalData | null> => {
     cohortLabel,
     contactEmail,
     selfRelease,
+    archived,
     steps,
     completedCount: steps.filter((s) => s.status === "complete").length,
   };

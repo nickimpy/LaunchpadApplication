@@ -4,6 +4,7 @@ import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import { bulkApply } from "@/app/(admin)/admin/applicants/bulk-actions";
 import { BULK_ACTIONS, type BulkState } from "@/utils/bulk-options";
+import { ARCHIVE_REASON_LABELS } from "@/utils/archive-options";
 import { DECISION_OPTIONS } from "@/utils/decision-options";
 import type { ApplicantRow, SortableColumn } from "@/utils/applicants";
 import { STEPS, adminStatusLabel, type StepStatus } from "@/utils/steps";
@@ -319,6 +320,24 @@ export function ApplicantTable({
                     <span className="block text-xs">goes by {r.preferredName}</span>
                   )}
                   <span className="block text-xs">{r.email}</span>
+                  {r.archivedAt && (
+                    <span className="mt-1 mr-1 inline-block rounded-full bg-grey-tint3 px-3 py-1 text-xs font-bold text-grey">
+                      Archived: {ARCHIVE_REASON_LABELS[r.archiveReason ?? ""] ?? "archived"}
+                    </span>
+                  )}
+                  {!r.archivedAt && !r.verified && (
+                    <span className="mt-1 mr-1 inline-block rounded-full bg-grey-tint3 px-3 py-1 text-xs font-bold text-grey">
+                      Email not verified
+                    </span>
+                  )}
+                  {r.possibleDuplicate && (
+                    <Link
+                      href="/admin/duplicates"
+                      className="mt-1 mr-1 inline-block rounded-full bg-orange-tint3 px-3 py-1 text-xs font-bold text-orange-dark hover:underline"
+                    >
+                      Possible duplicate
+                    </Link>
+                  )}
                   {r.collegeWarning && !r.collegeWarningResolved && (
                     <span className="mt-1 inline-block rounded-full bg-orange-tint3 px-3 py-1 text-xs font-bold text-orange-dark">
                       College plan flagged

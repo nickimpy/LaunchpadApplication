@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { ARCHIVE_REASON_LABELS } from "@/utils/archive-options";
 import { getAdminUser } from "@/utils/admin";
 import { getApplicants, parseFilters } from "@/utils/applicants";
 import { STEPS, STATUS_LABELS, type StepStatus } from "@/utils/steps";
@@ -39,6 +40,9 @@ export async function GET(request: NextRequest) {
     ...STEPS.map((s) => `Step ${s.number}: ${s.name}`),
     "Steps complete",
     "Applied",
+    "Email verified",
+    "Status",
+    "Archive note",
   ];
 
   const body = rows.map((r) =>
@@ -59,6 +63,15 @@ export async function GET(request: NextRequest) {
       ),
       `${r.completedCount}/7`,
       r.createdAt.slice(0, 10),
+      r.verified ? "Yes" : "No",
+      r.archivedAt
+        ? `Archived: ${ARCHIVE_REASON_LABELS[r.archiveReason ?? ""] ?? "archived"}`
+        : r.possibleDuplicate
+          ? "Active — possible duplicate"
+          : r.verified
+            ? "Active"
+            : "Unverified signup",
+      r.archiveNote ?? "",
     ].map(cell),
   );
 

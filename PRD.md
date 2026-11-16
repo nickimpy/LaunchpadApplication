@@ -264,6 +264,12 @@ Reminders run once a day (~10am ET) via Vercel Cron and stop once any decision i
 
 **College-plan flag:** staff resolve it on the profile with a required note (who/when/why shown, audit-logged, reopenable); a Step 1 change that re-raises it clears the old resolution.
 
+**Archive:** staff can archive an application (Withdrew / no longer interested, Ineligible, Test or spam, Duplicate, Never verified, Other) with a note. Archived records leave the active list, all counts and charts, and every email/text; they stay findable under "Archived", appear in the CSV with their reason, and can be restored. Nothing is deleted. "Withdrew" also records the Withdrew decision. Withdrawal is staff-only — students cannot withdraw themselves; an archived student who logs in sees "This application is closed" with the contact email.
+
+**Active pipeline:** only applicants who verified their email and aren't archived count anywhere. Unverified signups have their own tab and are auto-archived after 30 days.
+
+**Duplicates:** records with the same date of birth and the same name or phone are flagged ("Possible duplicate"), reviewed side by side at /admin/duplicates, and resolved by keeping one (the others are archived as duplicates) or marking them as different people. At signup, a likely existing account triggers a notice with a masked email hint, log-in and reset-password links, and the option to continue with the new email.
+
 **Settings page (`/admin/settings`, all staff):** contact email, cohort name, program start date + maximum age, summer dates/location, C2L links, the parent "learn more" text, both consent texts, and all step due dates. Validated, audit-logged with before/after. Consent edits only affect new signers — signed forms keep the snapshot they agreed to.
 
 **Interview rubric:** the 7 criteria, score labels and pathway options live in code (`src/utils/interview-options.ts`), not in Settings. Final wording from "Launchpad Interview Process & Applicant Rubric 2026" still needs to replace the PRD-summary placeholders.

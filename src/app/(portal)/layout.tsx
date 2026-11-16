@@ -70,6 +70,36 @@ export default async function PortalLayout({
           </form>
         </div>
       </header>
+      {data.archived ? (
+        // Staff archived this application (withdrew, duplicate, ineligible…).
+        // Students can't reopen it themselves — withdrawal and archiving are
+        // staff decisions — so the portal says so and points to a person.
+        <main id="portal-content" className="flex-1 px-6 py-9">
+          <div className="mx-auto w-full max-w-2xl rounded-lg border border-grey-tint2 bg-white p-6 shadow-sm">
+            <h1 className="mb-3 text-2xl font-bold">This application is closed</h1>
+            {data.archived.reason === "duplicate" ? (
+              <p className="mb-3">
+                It looks like you have another Launchpad account, so we&apos;ve
+                closed this one to keep everything in one place. Log out and log
+                in with the email you used for your other application.
+              </p>
+            ) : (
+              <p className="mb-3">
+                Launchpad staff have closed this application. If you think
+                that&apos;s a mistake, or you&apos;d like to apply again, we&apos;re
+                happy to help.
+              </p>
+            )}
+            <p>
+              Email{" "}
+              <a className="font-bold text-teal-dark underline" href={`mailto:${data.contactEmail}`}>
+                {data.contactEmail}
+              </a>{" "}
+              with any questions.
+            </p>
+          </div>
+        </main>
+      ) : (
       <div className="flex flex-1 flex-col md:flex-row">
         <StepNav steps={data.steps} completedCount={data.completedCount} />
         <main id="portal-content" className="min-w-0 flex-1 px-6 py-9">
@@ -79,6 +109,7 @@ export default async function PortalLayout({
           </div>
         </main>
       </div>
+      )}
     </div>
   );
 }
