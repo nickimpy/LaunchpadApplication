@@ -329,3 +329,38 @@ Added after a check against the repo. Each row is a place where the plan above w
 **Access scope (decided 2026-11-19, Jay): all active admins can use the hub.** No new scope columns, no change to `is_admin()`, no `outreach_users`/`is_outreach()`. Hub RLS simply uses `is_admin()` (writes that only leads may do can use `is_super_admin()`). Consequence: the old migration 0016 (roles, helpers, settings, approved facts, audit widening) is no longer needed. Settings and approved facts are code-only additions to `SETTING_GROUPS`; `audit_log` already accepts admin writes. **The first hub migration is therefore the partners schema (formerly 0017), renumbered 0016.** Later numbers shift down by one. Trade-off to remember: every admin, including any future outreach-only hire, can read applicant data.
 
 **Still open:** the partner status list (DECISION 3 in section 10).
+
+## 16. Partnership tracking values and the dashboard (2026-11-19)
+
+Source: the live "2026-27 Partner Database" sheet (tab names, column headers, the Scoring tab, and aggregate Dashboard numbers only; no contact details were copied into the repo).
+
+### 16.1 What the sheet tracks per organization (maps to 0016)
+
+| Sheet column(s) | Hub home |
+|---|---|
+| Organization, Network, Status (partner / potential / not a good fit / no contact), Notes | `orgs` (status uses the 15-value lifecycle; old values mapped) |
+| Launchpad Champion + Contact 1 to 5 (name, greeting, role, email), More Contacts, Verify | `org_contacts` (champion = `is_champion`; unparseable text to `legacy_text`) |
+| Last Contacted, Next Step, Follow-up | `contact_log` + view; follow-up is computed from last touch and cadence |
+| Tabling (done / scheduled), Tabling Headcount | `activities` (kind tabling) with typed headcount |
+| Info Session (done / scheduled), Info Session #, Info Session Headcount | `activities` (kind info session) with typed headcount |
+| Applied, Cohort 1 to 4, Total Enrolled, Completed Program, Retention % | **Computed** from `applications` by school id where available (decision 4); cohorts/completed typed until the app tracks them |
+| Responsive (0-2), Access (0-2) | `org_evaluations` (see 16.2) |
+| Students Reached | computed: sum of tabling + info session headcounts |
+| Partner Score (0-10), Tier | computed view; thresholds in settings (Reach 2 pts at 40, Applied 2 at 5, Enrolled 2 at 5; Anchor 8+, Growing 5+, Developing 1-4, Not started) |
+| Snooze Until | `orgs.snooze_until` |
+| LiftOff Pipeline stages (Not started, Contacted, Meeting set, Referring, Hosting) | `orgs.pipeline` (separate from the partner lifecycle on purpose: two different relationships) |
+
+### 16.2 Evaluations (the "eval of each school and contact")
+
+Today Responsive and Access are a single gut-check number overwritten in a cell, so there is no history and no reason recorded. Proposal: `org_evaluations(id, org_id, cycle_id, evaluated_on, evaluated_by, responsive 0..2, access 0..2, access_note, notes)`. The latest row per org feeds the score, older rows are kept as history, and the profile shows a "re-evaluate" prompt after a visit or every N days (setting). For contacts, do not add a manual rating; derive responsiveness from the contact log (days to reply, replies vs sends) and show it on the contact. **Open question:** is a manual per-contact rating wanted anyway?
+
+### 16.3 Interactive dashboard with prompts (`/hub`, mobile-first)
+
+Replaces the sheet's Dashboard tab and adds things it cannot do:
+- **Needs closeout (prompts):** any visit, tabling or info session whose start time has passed with no headcount recorded appears at the top as a card ("You were at King. How many students did you speak to?") with a large number field and Save, plus "not held" and "reschedule". A big "I'm at {school} now" card appears during a booked slot's window so it can be answered from a phone. Entries stay as prompts until completed; they are never silently dropped.
+- **Other prompt types:** re-evaluate partner (16.2), follow-up due, hold waiting for confirmation, unverified contact, next step missing.
+- **Numbers (same as the sheet):** partner schools, potential partners, students reached, applied, enrolled, retention; tabling and info sessions done; by-network table; tier counts; LiftOff stages; top 10 by score; slot counts by status; follow-up list oldest first; champions to contact first. Email-send stats arrive with the sending phase.
+- **Interactive:** every number links to the filtered list behind it (same pattern as the applicant dashboard); filters live in the URL.
+- **Data rule:** all counts come from tables, not hand-typed totals, except the typed headcounts above.
+
+Implementation note: closeout prompts depend on `activities` existing, so the activities tables (formerly 0019) move up and ship with the partner tables, or the dashboard launches with the simple "record headcount on this org" form first and gains slot-aware prompts later. **Decision for Jay:** which of those two.
