@@ -424,3 +424,12 @@ Goal: rate each partner using every signal we have, show WHY, and let a person o
 5. Write scopes (calendar events, drafts, sends) later, each human-triggered.
 
 **Decisions needed:** (a) internal Google OAuth app vs Apps Script bridge for step 4, (b) whether each person's derived email facts may feed the org score or only inform a suggestion, (c) permission from Tom before anything touches the Communication App.
+
+### 17.7 Decision recorded (2026-11-19, Jay): interim Apps Script bridge, internal Google app later
+
+- **Now:** the existing Apps Script, running as the shared outreach account, is the bridge. It pushes to token-guarded `/api/hub/bridge/*` endpoints (availability minutes, and derived mail facts for the shared mailbox) and, in phase 6, can poll an outbox for approved sends (7.1 option B). No Google OAuth app is built yet.
+- **Later:** an internal (domain-only) Google OAuth app, approved by a Workspace admin, replaces the bridge so each person connects their own account (17.5).
+- **Consequence for the gauge:** until the internal app exists, email-derived signals come only from the shared outreach mailbox (and calendar free/busy). Individual staff mailboxes are NOT read at all, which fits the per-account privacy rule. Responsiveness is therefore partly blind for threads that live only in a personal inbox; the gauge shows that as lower data completeness, not a low score, and staff can log those touches by hand in the contact log.
+- **Bridge rules:** bearer token in env (rotatable, never in the repo), endpoints accept only the fields they define (no raw message bodies), every call is logged to the audit log, and the bridge can be switched off from settings.
+- **Communication App (read 2026-11-19 from the credentials-redacted Drive backup):** stays out of scope. Findings to pass to Tom: hardcoded Twilio credentials in the live script, text-reply pull capped at the latest 100 with no pagination, fragile email-reply matching, no quiet hours/opt-out/cap/dedupe on sends, three unreviewed external libraries.
+- **Still needed to read the Outreach scripts:** a credentials-redacted text backup in Drive (or pasted files); clasp cannot be run from this environment.
