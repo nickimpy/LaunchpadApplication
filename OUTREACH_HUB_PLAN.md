@@ -364,3 +364,63 @@ Replaces the sheet's Dashboard tab and adds things it cannot do:
 - **Data rule:** all counts come from tables, not hand-typed totals, except the typed headcounts above.
 
 Implementation note: closeout prompts depend on `activities` existing, so the activities tables (formerly 0019) move up and ship with the partner tables, or the dashboard launches with the simple "record headcount on this org" form first and gains slot-aware prompts later. **Decision for Jay:** which of those two.
+
+## 17. Hybrid partnership gauge (2026-11-19)
+
+Goal: rate each partner using every signal we have, show WHY, and let a person override, instead of one hand-typed number.
+
+### 17.1 What was read to design this (read-only)
+
+- **Partner Database sheet:** Partners tab (org, network, status, notes, outreach and activity columns; contact columns deliberately skipped), LiftOff Pipeline, Session Intake, Action, Dashboard, Scoring. Not read: Student Emails (student data), Staff (home ZIPs), Templates, Send Queue, Merge Log, Slot Inventory.
+- **Application database (live, aggregate counts per school only, no student rows):** applications and Step 1 completions by school.
+- **Communication App:** NOT read. The plan (7.3) says Tom at Building 21 must be asked first, and its script holds credentials. Nothing in this design depends on it.
+
+### 17.2 Findings that shape the design
+
+1. **The sheet's "Applied" column is empty** (dashboard shows 0 applied) while the app already holds real applications by school (for example Furness 6, Multicultural 4, Lenfest 3, Central 3). Confirms decision 4: compute, never hand-enter.
+2. **33 live applications have no school linked** (typed-in "Other" or unmatched). Any per-school count undercounts until those are matched. Needs the same matching pass as migration 0015.
+3. **Names do not match.** Sheet says "Furness", "Mastery - Lenfest", "King"; the app's `schools` table says "Horace Furness High School", "Mastery Charter School - Lenfest Campus". Import must build an alias map to `schools.id` once and store it.
+4. **Partner flag already disagrees across the two systems.** `schools.is_partner` is true for Franklin Learning Center and Central is false, while the sheet lists Franklin as a potential partner. Confirms decision 3: one owner (`orgs`), the school flag derived from it.
+5. **The Notes column already holds a human gauge** as free text: "Strong Partner", "Low retention", "Low applications usually", "Poor communication", "No early release", "Early release inconsistent", "Strong Partner, but also Dual Enrollment", "tiny school". These become structured `org_tags`, imported by exact phrase, with unmatched notes kept as legacy text.
+6. **Most schools have never been evaluated:** 60+ of 80 rows are "Not started" with no logged touch since 9/30. A gauge must show "no data" for them, not a low score.
+7. **Notes contain operational state** (who we are waiting on, scheduled dates). That is `contact_log.next_step` plus `activities`, not part of the rating.
+
+### 17.3 Signals, by source
+
+| Signal | Source | How it is obtained |
+|---|---|---|
+| Reach (students spoken to) | tabling and info session headcounts | typed by staff, prompted by the dashboard closeout card |
+| Applications started and Step 1 complete | app database by `school_id` | computed view |
+| Applications per student reached (conversion) | the two above | computed |
+| Enrolled, cohorts, retention | typed until the app tracks them | typed |
+| Follow-through | scheduled vs held vs cancelled activities | computed from `activities` |
+| Responsiveness | reply speed, thread count, recent touches | derived from connected Google accounts (17.5) and the contact log |
+| Access | early release, class time, room | `org_school_facts` plus evaluation |
+| Human judgement | tags (strong partner, poor communication, low retention) and the latest evaluation | typed, dated, with who and why |
+
+### 17.4 How the gauge is built (explainable, not a black box)
+
+- **Keep the existing 0-10 score and tiers** for continuity (thresholds stay in settings). Components that now compute: Reach, Applied. Responsive and Access become the latest evaluation, pre-filled with a suggestion from the signals that a person confirms or changes.
+- **Show the reasons** next to every score ("Reach 75 students, 6 applications, Responsive 2 because replied in under 2 days, Access 1 because early release is inconsistent").
+- **Show data completeness** beside the tier (for example "3 of 6 signals"), and show "No data" instead of zero when signals are missing. Silence is not a bad rating.
+- **Overrides** (a person pins a tier) require a reason and are audit-logged; the computed value stays visible.
+- **Trend** is stored per season so a partner can be compared with itself.
+
+### 17.5 Google accounts: pull and push, separate per account (privacy)
+
+- **Each staff member connects their own Google account** (OAuth). Nobody's mailbox or calendar is read through someone else's account. The shared outreach mailbox is its own connection, owned by a lead.
+- **Read first, write later.** Phase one asks only for read access (Gmail metadata or read-only, Calendar free/busy and events). Sending, drafts and creating calendar events are a separate, explicit grant per account and still require a human click.
+- **Message content is not stored.** Per account we store only derived facts: matched org, direction, timestamp, thread id, reply latency. Matching is by the address or domain of known `org_contacts`; everything else is ignored.
+- **Per-account privacy in the database:** raw derived rows live in a `mail_signals` table whose row-level security lets only the owning user read them. Org-level views show aggregates only (counts, last-touch date, median reply time, who last touched it) through a security-definer view, never subjects, bodies or another person's individual threads. Note this is stronger than the rest of the hub, where all admins can read everything (decision: all admins use the hub).
+- **Control:** each person can see what is connected, disconnect, and purge everything derived from their account. Tokens are encrypted, per user, server-side only, never in the repo or logs.
+- **Needs a decision and Workspace admin action:** an internal (domain-only) Google OAuth app avoids Google's public verification for sensitive mail scopes; someone with Workspace admin rights must approve it. Until then the Apps Script bridge (7.2) is the interim path.
+
+### 17.6 Build order for this feature
+
+1. Partner tables, tags, evaluations, aliases to `schools.id` (migration 0016, tested on the `outreach-hub` branch).
+2. Computed views: reach, applications by school, conversion, follow-through, gauge with reasons and completeness.
+3. Dashboard with closeout prompts (16.3).
+4. Google connections, read-only, one account at a time, starting with a single test account.
+5. Write scopes (calendar events, drafts, sends) later, each human-triggered.
+
+**Decisions needed:** (a) internal Google OAuth app vs Apps Script bridge for step 4, (b) whether each person's derived email facts may feed the org score or only inform a suggestion, (c) permission from Tom before anything touches the Communication App.
