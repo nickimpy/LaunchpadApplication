@@ -433,3 +433,51 @@ Goal: rate each partner using every signal we have, show WHY, and let a person o
 - **Bridge rules:** bearer token in env (rotatable, never in the repo), endpoints accept only the fields they define (no raw message bodies), every call is logged to the audit log, and the bridge can be switched off from settings.
 - **Communication App (read 2026-11-19 from the credentials-redacted Drive backup):** stays out of scope. Findings to pass to Tom: hardcoded Twilio credentials in the live script, text-reply pull capped at the latest 100 with no pagination, fragile email-reply matching, no quiet hours/opt-out/cap/dedupe on sends, three unreviewed external libraries.
 - **Still needed to read the Outreach scripts:** a credentials-redacted text backup in Drive (or pasted files); clasp cannot be run from this environment.
+
+## 18. Foundational tech carried over from the scripts (2026-11-19)
+
+Source: the Partner Database script (13 files, about 4,700 lines) and the Communication App script, pulled read-only with clasp into a private scratchpad outside the repo. Read: file headers, function lists, and the spots that matter. A full line-by-line parity read is still to do. No credentials, contact data, calendar ids, or staff emails are copied here.
+
+### 18.1 Why this matters
+
+The scripts are already split into **pure logic** (no Apps Script calls, unit tested in node) and a thin **Apps Script layer** (sheets, mail, triggers). The pure parts port to TypeScript almost one for one, and their existing tests become the acceptance tests. That is the safest way to move the business rules: port the tests first, watch them fail, then port the code.
+
+### 18.2 Foundation modules (each becomes a file in `src/utils/hub/` with tests)
+
+| Script module | What it gives the hub | Hub home | Port notes |
+|---|---|---|---|
+| `MailMerge.js` (about 1,200 lines) | segment, one-template-per-batch, To/CC/BCC rules, test-gate (14 days, keyed to template text), typed `SEND`, preview vs drafts, skip rules (verify flag, status, "Await" next steps, already contacted, no windows), unfilled-token blocker, dedupe, send pacing | `mail/merge.ts`, `mail/skip-rules.ts`, `mail/test-gate.ts` | Highest value and highest risk. Port rules and tests before any sending code. |
+| `mmLint` plus the Sunday list (`SC_BANNED_`) | wording lint: dollar amounts, em dash, "college credit", hourly rate, ET/EST/EDT, "Eastern Time", subject prefix, and voice phrases ("so glad", "so excited", ...) | `mail/lint.ts` | The two files keep **different lists**. Merge into one shared function; make the prefix check case-insensitive (known bug). |
+| `Ghosts.js` | `gtNormOrg` (org-name normalisation so "Frankford HS" and "Frankford High School" match), touches, ghost vs reply status, ranking, digest lines; Last Contacted only moves forward | `partners/ghosts.ts`, `partners/org-name.ts` | `gtNormOrg` is the seed for the school-alias map (17.2 finding 3). |
+| `WhosFree.js` | the four shift frames (7-10, 10-1, 1-4, 4-7), free / partly free / busy / unknown, 42-day window, notice rule per person, out-of-office all-day events, free/busy only (never titles) | `shifts/availability.ts` | Notice rules and exclusions become `staff_profiles` fields, not constants. |
+| `Staffing.js` | sign-up form, Staff tab, "Could cover", live shift board, claim/release | `shifts/*`, board page | Fix: column C is a time label now, not AM/PM (known bug); capacity 2 enforced in SQL. |
+| `WeeklyNumbers.js` | Monday to Sunday weeks, counts, history tab | `reports/weekly.ts`, view | Replace the hand-rolled DST math with explicit-option `Intl` and test across the March and November changes. |
+| `SundayConfirm.js` | draft-only Sunday confirmations to schools and staff, one checklist email to Jay | `jobs/sunday-confirm.ts` | Stays drafts-only. |
+| `LiftoffHub.js` | one-time builder merging three tabs, department letters A to K, held contacts | `scripts/import/` | One-time import, not a runtime feature. |
+| `Automations.js` (926 lines) | daily run: digest, team alerts, morning-of heads-up, snoozes, Jotform counts, Roam posts, health check, `CONFIG` | `jobs/*` inside `/api/cron/daily` | Secrets already live in Script Properties, not the file: mirror that with env vars. |
+| `Guard.js` | one runner account runs scheduled jobs; pure `runnerDecision_` | replaced by one Vercel cron plus `event_log` unique keys | Idempotency idea survives: a job must not run twice for the same key. |
+| `Move To Top.js`, Slot Backup | nightly sort, backup tabs | retired | Ordering is a query; history is a trigger table. |
+
+### 18.3 Foundation patterns worth keeping from both projects
+
+1. **Draft, don't act.** Merge makes drafts or previews; Sunday only drafts; the Replies sidebar saves HOLD rows and sends only after a person confirms the exact list. Hub rule: every outbound action has a draft state and a human confirm.
+2. **No double sends by construction.** After a send, the Communication App's sidebar flips every row back to HOLD so a re-run cannot text anyone twice. Hub equivalent: unique `(contact, template)` dedupe window plus a message state machine (`queued` to `sent`), never re-selectable once sent.
+3. **STOP handling.** `rpIsStop` recognises stop, stopall, unsubscribe, cancel, end, quit and blocks replies to that person. Reuse the pattern, applied by the app's own notify code (decision: v1 hub sends no student texts).
+4. **Phone normalisation.** `rpDigits10` (strip to 10 digits, drop a leading 1) is already covered by the app's `toE164`; reuse that, do not re-port it.
+5. **Pure core, thin shell.** Keep the same split in TypeScript: pure functions in `src/utils/hub/**` tested with plain node, thin server actions around them.
+6. **Prefix names to avoid collisions** (`gt`, `sc`, `wn`, `rp`) becomes ordinary module scope.
+7. **Philly time everywhere**, but with `Intl` explicit options, not hand-rolled DST.
+
+### 18.4 What is NOT carried over
+
+The Communication App's send menu (no quiet hours, no cap, credentials hardcoded in the live script), its 100-message reply window, and its student/parent data tabs. It remains Tom's and out of scope; only the draft-then-confirm and STOP ideas are borrowed.
+
+### 18.5 Gaps to close before porting
+
+- **The node tests (`test/*.test.js`) were not in the pull.** They live in the repo that holds the script source, which this session cannot reach. They are the acceptance tests; Jay needs to make them available (a branch of this repo, or pasted files).
+- **A full parity read** of `MailMerge.js`, `Automations.js`, `Staffing.js`, and `SundayConfirm.js` against section 9 is still owed; this section is based on headers and function lists.
+- The live script differs from the plan's line numbers if it has been edited since (the plan cites `MailMerge.js:1075/1119`; confirmed in the current pull).
+
+### 18.6 Effect on build order
+
+Phase 0 gains one step: **bring the script tests into the repo** (`src/utils/hub/__tests__`). Phase 5 (templates and lint) and Phase 6 (sending) start from the ported merge, lint, and skip-rule modules rather than from scratch. Phase 3 starts from `availability.ts`. The partner migration (0016) is unaffected.
