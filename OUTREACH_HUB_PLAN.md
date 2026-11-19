@@ -481,3 +481,61 @@ The Communication App's send menu (no quiet hours, no cap, credentials hardcoded
 ### 18.6 Effect on build order
 
 Phase 0 gains one step: **bring the script tests into the repo** (`src/utils/hub/__tests__`). Phase 5 (templates and lint) and Phase 6 (sending) start from the ported merge, lint, and skip-rule modules rather than from scratch. Phase 3 starts from `availability.ts`. The partner migration (0016) is unaffected.
+
+## 19. Parity read results (2026-11-19)
+
+Four read-only reviews covered every file of the Partner Database script (13 files) and the Communication App script (7 files). Full reports are kept privately outside the repo (they cite code lines and constants only). Two claims were spot-checked against the source: the second `syncRepliesAndBounces` (MailMerge.js:1119) does reference an undefined `subjects`, and `DAILY_CAP` 750, `RUN_CAP` 40, `PER_ORG` 2 are as reported. The rest is reviewer output not yet independently verified; the live sheet itself was not inspected.
+
+### 19.1 Rules the plan was missing (now to be built, each with ported tests)
+
+| Area | Missing rule |
+|---|---|
+| Season model | Season starts Sept 1 and wraps the new year; the main tab closes Feb 15 and the LiftOff tab Jan 15; a "crunch" period reopens everything; outside a tab's season its follow-up list is empty. Needs `season` settings per pipeline, not just `snooze_until`. |
+| Follow-up | Nudge days ramp 7 / 5 / 3 / 2 as a close date nears (60 / 30 / 14 days left), strictly-greater comparison; daily digest cap ramps 5 / 10 / 15; off-season, partners are spread over 4 weekly waves once per season; excluded: skip statuses, snoozed, upcoming Offered/Hold/Booked visits, never-contacted orgs. |
+| Digest | 10 ordered sections plus a Friday look-ahead through Monday. `FOLLOW_UP_DAYS` is dead code. |
+| Sending limits | 40 per run, 750 per day, 2 to 5 second pauses, 10-minute batch gap, 8 AM to 8 PM Philly window (no weekend rule today), 7-day redraft rule, 30-day skip-replied rule, 16 skip reasons in a fixed priority order. |
+| Windows offered | reuse when exhausted, release on skip, 21-day hold, 2 per org (`{{Window 3}}` can never fill). |
+| Test gate | hash must cover subject, body, attachments, notes and signature; 14-day expiry. |
+| Suppression | No hard-bounce or do-not-contact suppression exists today. Hub needs a persisted suppression list, STOP and START handling, and a Discarded message status plus bounce detail. |
+| Shifts | core-staff coverage rule (`noCore`, `REQUIRE_CORE`, team alert); auto-classifier for Tabling vs Info session from the event name; Could-cover time-of-day and interest mapping with "ask first"; free / part / busy / unknown markers with star and ask; sign-up and claim/release notifications; shift horizons 56 and 42 days; part-free threshold 60 busy minutes; per-person notice rules and exclusions as settings. |
+| LiftOff builder | held contacts (stale, not found, no email), Verified / Mixed / Unverified status, department classifier, 5 contact slots plus overflow, 7-day follow-up threshold. |
+| Reports | weekly metric definitions (sent, orgs, replies, bounces, held, next7); decide which week the Monday summary describes. |
+
+### 19.2 Defects found in the current scripts (fix in the hub by design; some fixable now)
+
+1. **Reply sync is broken.** Two definitions of `syncRepliesAndBounces`; the one that wins throws on an undefined `subjects`, so bounces may be written but replies never are. The first copy also has stray lines using an undefined `changed`. Suggested live fix: keep the first copy's chunked search, delete the stray lines, return the counts.
+2. **Watchdog restarts a deliberately stopped queue** and re-sends the "stopped" email in a loop until someone cancels. Hub needs an explicit `stopped` state.
+3. **Queue row-changed check compares the wrong addresses** (champion vs first Contact 1 cell), wrongly skipping some rows. Compare contact ids.
+4. **Test mode skips the subject-prefix check**, so a bad prefix passes the test gate and then blocks every live row; the check is also case-sensitive.
+5. **Column C is still read as AM/PM** in three places (Staffing.js 166, 197, 493); **column K is treated as "Could cover" in one file and "Notes" in another** (verify the live sheet before anything rewrites K).
+6. **"Needs staff" is defined three ways** (board, Who's Free, Could cover). The hub defines it once in `v_slots_needing_staff`.
+7. **Claim/release identify a row by row number, date and column C**, so a sort or two same-time slots can hit the wrong row. Hub claims by slot id in one transaction.
+8. **Morning-of heads-up** has no weekend guard, no duplicate check, and emails real team guests even in DRY_RUN. **Sunday drafts** are created even when the lint fails or placeholder text remains. **School reminders in DRY_RUN are not logged**, so they repeat daily; a crash between send and log can duplicate.
+9. **Monday 8 AM summary reports the week that just started** (near-zero numbers, large negative delta).
+10. **Date math** is hand-rolled in several files (fixed 24-hour days), shifting by an hour across daylight saving; the close-date countdown jumps to about 365 on the close date; Friday reminders for weekend events say "tomorrow".
+11. **Hard-coded 200-row limits** (Automations.js 757 and 835, WeeklyNumbers.js 229) against 424+ rows; ghost sync reads only 300 threads and returns 0 on error without raising it.
+12. **Name matching:** `gtNormOrg` can merge distinct orgs differing only by noise words; hub keys on org id and stores aliases as data. The ghost sync counts any email address in a whole row, including notes.
+13. **Guard.js fails open** on any error and treats an unreadable note as a different runner.
+14. **LiftOff builder** silently drops a source row with a blank first column and creates a duplicate group when an existing one has a blank School.
+15. **Dead code:** `mmMatchesTemplate`, the row-Template sentinel path, the TestApproved status.
+
+### 19.3 Communication App (documentation only; not being replaced)
+
+Main send menu has no dedupe, quiet hours, caps, opt-out, or phone normalisation; the reply sidebar is the safe path (HOLD drafts, confirm sheet, batch fingerprint check, all-or-nothing validation, reset to HOLD). Credentials are hardcoded in the live `Code.js`, a dead function holds a second copy, three unreviewed libraries run with full scopes, scheduled triggers run as their creator, and any sheet editor can call any server function. STOP regex has false positives and is forgotten once a message ages out of the inbound window. **Borrow:** draft-then-confirm, batch fingerprint, all-or-nothing validation, a persisted suppression table with STOP and START, windowed duplicate check. **Do not borrow:** the main send loop, email-reply matching, credentials handling.
+
+### 19.4 Design changes this forces on the plan
+
+- Add `season` and `follow_up_rules` to settings (19.1), and a `suppressions` table (STOP, hard bounce, do-not-contact) checked on every send.
+- Add message statuses `stopped` and `discarded`, and `bounce_detail`, to `messages`.
+- Treat the 16 skip reasons, in priority order, as an enum with tests.
+- `v_slots_needing_staff` is the single definition of "needs staff"; claims are by slot id with capacity 2 in SQL.
+- Weekday-must-match-date and unique-slot invariants become database constraints (slots table already has `unique(slot_date, window_code)`).
+- Every job gets an idempotency key in `event_log`; DRY_RUN logs what it would have sent, so a rerun is a no-op.
+
+### 19.5 Test cases to port first
+
+Per reviewer lists: greeting strings, recipient assembly (To / CC / BCC), lint rules (each banned phrase, case-insensitive prefix), the 16 skip reasons in priority order, 14-day gate boundaries, window allocation, send-delay math across midnight and DST, bounce and auto-reply samples, ghost status / rank / digest wording, nudge-day ramps, season boundaries, Who's Free free/part/busy edges, notice-rule star, claim race on the last position, and STOP / START with the false-positive cases. **The original node test files were not in the pull**; they would give a head start and should be added if Jay can provide them.
+
+### 19.6 Effect on phases
+
+Phase 3 (shifts) and Phase 6 (sending) get larger because of the missing rules above; the partner migration 0016 is unchanged except for the suppression and season settings that arrive with later migrations. The live-script fixes in 19.2 items 1 to 4 and 11 are independent of the hub and can be done now in the Apps Script with Jay's approval.
