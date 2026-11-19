@@ -314,3 +314,18 @@ Added after a check against the repo. Each row is a place where the plan above w
 | `dbErrorMessage`, `SelectField`, `formatDateTime`, `RichText` | exist | Already referenced in section 2; use them, do not re-create. |
 
 **Net effect if accepted:** migration 0016 shrinks to (maybe) the role decision plus settings groups; sending reuses `notify/`; cron reuses `/api/cron/daily`. The genuinely new work is partners/contacts/agreements, slots/shifts, activities, and the school-facing template and lint layer.
+
+### 15.1 Decisions made (2026-11-19, Jay)
+
+| # | Decision |
+|---|---|
+| 1 | **Reuse `admin_users`** for all hub staff. No separate `outreach_users` table. See the access-scope note below. |
+| 2 | **Reuse settings** (`cycle_settings` + `/admin/settings`). No `outreach_settings` or `approved_facts` tables; hub copy and approved facts become new `SETTING_GROUPS`. |
+| 3 | **`orgs` is the one source of truth for partner status.** `schools.is_partner` must not be edited separately; it becomes derived from `orgs` (or is retired) so the two can never disagree. |
+| 4 | **Compute** applied and enrolled counts from `applications` by school id. **Typed by staff:** info session headcounts and tabling headcounts only. |
+| 5 | **Hub jobs run inside the existing `/api/cron/daily`.** No `/api/cron/hub-daily`. |
+| 6 | **Agreement PDFs stay in Google Drive** for now (`agreements.pdf_drive_id`). Revisit later. |
+
+**Access-scope note (consequence of decision 1).** `is_admin()` is used by 24+ RLS policies, so today every active row in `admin_users` can read all applicant data. Sharing the table means outreach-only staff would see applicants unless we add a scope. Proposed for migration 0016: add `admin_users.can_view_applicants boolean not null default true` and `can_use_hub boolean not null default false`; redefine `is_admin()` to require `can_view_applicants`; add `is_hub_staff()` for hub tables. Existing rows keep today's behaviour (default true), so nothing changes for current staff. Redefining `is_admin()` touches every policy at once, so it must be proven on the `outreach-hub` Supabase branch with real student, admissions, and outreach-only sessions before anything goes near live.
+
+**Still open:** the partner status list (DECISION 3 in section 10), and whether outreach-only staff exist at all (if all three hub users may see applicants, the scope flags are unnecessary).
